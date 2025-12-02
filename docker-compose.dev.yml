@@ -1,0 +1,62 @@
+# Akura AI - Docker Compose for Development
+# Includes hot-reload and debug mode
+
+version: '3.8'
+
+services:
+  # ============================================
+  # Akura AI Backend API (Development)
+  # ============================================
+  akura-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: akura-ai-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:1b
+      - OLLAMA_TIMEOUT=120
+      - MODEL_TEMPERATURE=0.3
+      - MODEL_MAX_TOKENS=512
+      - AI_CONFIDENCE_THRESHOLD=0.7
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=text
+      - ALLOWED_ORIGINS=*
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    depends_on:
+      - ollama
+    networks:
+      - akura-network
+
+  # ============================================
+  # Ollama LLM Service
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: akura-ollama-dev
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data-dev:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - akura-network
+
+networks:
+  akura-network:
+    driver: bridge
+
+volumes:
+  ollama-data-dev:
+    driver: local

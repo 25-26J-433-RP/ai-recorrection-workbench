@@ -1,0 +1,57 @@
+# Akura AI - Docker Ignore
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.eggs
+*.egg
+
+# Virtual environments
+.venv
+venv
+env
+ENV
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Tests
+tests/
+.pytest_cache
+.coverage
+htmlcov
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+docker-compose.dev.yml
+Dockerfile.dev
+.env.example
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Model files (should be pulled separately)
+models/
+*.bin
+*.gguf

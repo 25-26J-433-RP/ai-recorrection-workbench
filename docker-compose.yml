@@ -1,0 +1,93 @@
+# Akura AI - Docker Compose Configuration
+# Development and production deployment options
+
+version: '3.8'
+
+services:
+  # ============================================
+  # Akura AI Backend API
+  # ============================================
+  akura-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akura-ai-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:1b
+      - OLLAMA_TIMEOUT=120
+      - MODEL_TEMPERATURE=0.3
+      - MODEL_MAX_TOKENS=512
+      - AI_CONFIDENCE_THRESHOLD=0.7
+      - LOG_LEVEL=INFO
+      - ALLOWED_ORIGINS=*
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - akura-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # Ollama LLM Service
+  # ============================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: akura-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - akura-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    # Pull the model on startup (uncomment for first run)
+    # command: >
+    #   sh -c "ollama pull llama3.2:1b && ollama serve"
+
+  # ============================================
+  # Model Initialization (Run once)
+  # ============================================
+  model-init:
+    image: ollama/ollama:latest
+    container_name: akura-model-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - akura-network
+    entrypoint: >
+      sh -c "
+        echo 'Pulling llama3.2:1b model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:1b\"}' &&
+        echo 'Model pulled successfully!'
+      "
+    restart: "no"
+
+networks:
+  akura-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
+    driver: local

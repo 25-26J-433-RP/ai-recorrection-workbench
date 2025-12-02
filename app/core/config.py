@@ -1,0 +1,63 @@
+"""
+Akura AI - Configuration Module
+
+This module handles all application configuration using Pydantic Settings.
+Configuration can be loaded from environment variables or .env file.
+"""
+
+from functools import lru_cache
+from typing import List
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+    
+    # Server Configuration
+    host: str = "0.0.0.0"
+    port: int = 8000
+    debug: bool = False
+    environment: str = "production"
+    
+    # Ollama Configuration
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2:1b"
+    ollama_timeout: int = 120
+    
+    # Model Configuration
+    model_temperature: float = 0.3
+    model_max_tokens: int = 512
+    ai_confidence_threshold: float = 0.7
+    
+    # Logging
+    log_level: str = "INFO"
+    log_format: str = "json"
+    
+    # CORS Configuration
+    allowed_origins: str = "http://localhost:3000,http://localhost:8080"
+    
+    # Rate Limiting
+    rate_limit_requests: int = 100
+    rate_limit_period: int = 60
+    
+    @property
+    def cors_origins(self) -> List[str]:
+        """Parse comma-separated CORS origins into a list."""
+        return [origin.strip() for origin in self.allowed_origins.split(",")]
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """
+    Get cached settings instance.
+    
+    Returns:
+        Settings: The application settings instance.
+    """
+    return Settings()
