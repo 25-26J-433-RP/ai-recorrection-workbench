@@ -1,11 +1,11 @@
 /**
  * Akura AI - API Service Layer
- * 
+ *
  * Handles all communication with the backend API.
  * Includes fallback to demo mode if backend is unavailable.
  */
 
-import { API_CONFIG, DEMO_DATA } from '../constants';
+import { API_CONFIG, DEMO_DATA } from "../constants";
 
 class ApiService {
   constructor() {
@@ -42,9 +42,9 @@ class ApiService {
     try {
       const response = await this.fetchWithTimeout(
         `${this.baseUrl}${API_CONFIG.ENDPOINTS.HEALTH}`,
-        { method: 'GET' }
+        { method: "GET" }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         this.isOnline = true;
@@ -56,15 +56,18 @@ class ApiService {
           ollamaConnected: data.ollamaConnected || data.ollama_connected,
         };
       }
-      throw new Error('Health check failed');
+      throw new Error("Health check failed");
     } catch (error) {
-      console.warn('Backend unavailable, switching to demo mode:', error.message);
+      console.warn(
+        "Backend unavailable, switching to demo mode:",
+        error.message
+      );
       this.isOnline = false;
       this.demoMode = true;
       return {
         online: false,
-        status: 'offline',
-        modelStatus: 'Demo mode active',
+        status: "offline",
+        modelStatus: "Demo mode active",
         ollamaConnected: false,
       };
     }
@@ -83,9 +86,9 @@ class ApiService {
       const response = await this.fetchWithTimeout(
         `${this.baseUrl}${API_CONFIG.ENDPOINTS.ANALYZE}`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             text,
@@ -101,7 +104,10 @@ class ApiService {
       const data = await response.json();
       return this.normalizeResponse(data);
     } catch (error) {
-      console.warn('Analysis failed, falling back to demo mode:', error.message);
+      console.warn(
+        "Analysis failed, falling back to demo mode:",
+        error.message
+      );
       this.demoMode = true;
       return this.getDemoResponse(text);
     }
@@ -117,14 +123,14 @@ class ApiService {
 
     // Demo corrections dictionary
     const demoCorrections = {
-      'ගෙරද': { correct: 'ගෙදර', pattern: 'Visual Sequencing (Scrambled)' },
-      'යනව': { correct: 'යනවා', pattern: 'Grammar (Spoken vs Written)' },
-      'එනව': { correct: 'එනවා', pattern: 'Grammar (Spoken vs Written)' },
-      'කනව': { correct: 'කනවා', pattern: 'Grammar (Spoken vs Written)' },
-      'බොනව': { correct: 'බොනවා', pattern: 'Grammar (Spoken vs Written)' },
-      'කරනව': { correct: 'කරනවා', pattern: 'Grammar (Spoken vs Written)' },
-      'මං': { correct: 'මම', pattern: 'Grammar (Spoken vs Written)' },
-      'පාලස': { correct: 'පාසල', pattern: 'Visual Sequencing (Scrambled)' },
+      ගෙරද: { correct: "ගෙදර", pattern: "Visual Sequencing (Scrambled)" },
+      යනව: { correct: "යනවා", pattern: "Grammar (Spoken vs Written)" },
+      එනව: { correct: "එනවා", pattern: "Grammar (Spoken vs Written)" },
+      කනව: { correct: "කනවා", pattern: "Grammar (Spoken vs Written)" },
+      බොනව: { correct: "බොනවා", pattern: "Grammar (Spoken vs Written)" },
+      කරනව: { correct: "කරනවා", pattern: "Grammar (Spoken vs Written)" },
+      මං: { correct: "මම", pattern: "Grammar (Spoken vs Written)" },
+      පාලස: { correct: "පාසල", pattern: "Visual Sequencing (Scrambled)" },
     };
 
     words.forEach((word) => {
@@ -132,12 +138,12 @@ class ApiService {
       if (correction) {
         errors.push({
           word,
-          type: 'error',
+          type: "error",
           dyslexiaPattern: correction.pattern,
           suggestion: correction.correct,
           explanation: `Demo mode: "${word}" corrected to "${correction.correct}"`,
           confidence: 0.85,
-          source: 'demo',
+          source: "demo",
         });
         correctedWords.push(correction.correct);
       } else {
@@ -148,10 +154,10 @@ class ApiService {
     return {
       success: true,
       data: errors,
-      correctedText: correctedWords.join(' '),
+      correctedText: correctedWords.join(" "),
       originalText: text,
       processingTimeMs: Math.random() * 100 + 50,
-      modelUsed: 'demo-mode',
+      modelUsed: "demo-mode",
       isDemoMode: true,
     };
   }
@@ -179,9 +185,18 @@ class ApiService {
       return {
         success: true,
         patterns: [
-          { name: 'Visual Sequencing (Scrambled)', description: 'Letters in wrong order' },
-          { name: 'Phonetic Confusion (Dental/Retroflex)', description: 'Similar sounding consonants' },
-          { name: 'Grammar (Spoken vs Written)', description: 'Colloquial vs written forms' },
+          {
+            name: "Visual Sequencing (Scrambled)",
+            description: "Letters in wrong order",
+          },
+          {
+            name: "Phonetic Confusion (Dental/Retroflex)",
+            description: "Similar sounding consonants",
+          },
+          {
+            name: "Grammar (Spoken vs Written)",
+            description: "Colloquial vs written forms",
+          },
         ],
       };
     }
@@ -189,11 +204,11 @@ class ApiService {
     try {
       const response = await this.fetchWithTimeout(
         `${this.baseUrl}${API_CONFIG.ENDPOINTS.PATTERNS}`,
-        { method: 'GET' }
+        { method: "GET" }
       );
       return await response.json();
     } catch (error) {
-      console.warn('Failed to fetch patterns:', error.message);
+      console.warn("Failed to fetch patterns:", error.message);
       return { success: false, patterns: [] };
     }
   }

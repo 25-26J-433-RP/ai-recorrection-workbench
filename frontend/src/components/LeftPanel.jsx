@@ -1,51 +1,51 @@
 /**
  * Akura AI - Left Panel Component (Input Module)
- * 
+ *
  * Text input area with character count and analyze button.
  * Shows helpful tips for teachers.
  */
 
-import React from 'react';
-import { Send, AlertCircle, Lightbulb, FileText } from 'lucide-react';
-import { useAnalysis } from '../context/AnalysisContext';
+import React from "react";
+import { Send, AlertCircle, Lightbulb, FileText } from "lucide-react";
+import { useAnalysis } from "../context/AnalysisContext";
 
 // Sample texts for quick testing
 const SAMPLE_TEXTS = [
   {
-    title: 'නියැදිය 1',
-    text: 'මම ගෙරද යනව',
-    description: 'Visual scrambling + grammar',
+    title: "නියැදිය 1",
+    text: "මම ගෙරද යනව",
+    description: "Visual scrambling + grammar",
   },
   {
-    title: 'නියැදිය 2', 
-    text: 'මං පාලස යනව',
-    description: 'Spoken form + scrambling',
+    title: "නියැදිය 2",
+    text: "මං පාලස යනව",
+    description: "Spoken form + scrambling",
   },
 ];
 
 function LeftPanel() {
-  const { 
-    inputText, 
-    setInputText, 
-    analyzeText, 
+  const {
+    inputText,
+    setInputText,
+    analyzeText,
     isAnalyzing,
     analysisComplete,
   } = useAnalysis();
-  
+
   const characterCount = inputText.length;
   const wordCount = inputText.trim() ? inputText.trim().split(/\s+/).length : 0;
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (inputText.trim() && !isAnalyzing) {
       analyzeText();
     }
   };
-  
+
   const loadSample = (text) => {
     setInputText(text);
   };
-  
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
       {/* Panel Header */}
@@ -58,7 +58,7 @@ function LeftPanel() {
           Enter student's text for dyslexia pattern analysis
         </p>
       </div>
-      
+
       {/* Text Input Area */}
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col p-6">
         <div className="relative flex-1">
@@ -70,7 +70,7 @@ function LeftPanel() {
             dir="auto"
             disabled={isAnalyzing}
           />
-          
+
           {/* Character/Word Count */}
           <div className="absolute bottom-3 right-3 flex items-center gap-3 text-xs text-slate-400">
             <span>{wordCount} words</span>
@@ -78,7 +78,7 @@ function LeftPanel() {
             <span>{characterCount} chars</span>
           </div>
         </div>
-        
+
         {/* Sample Texts */}
         <div className="mt-4">
           <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
@@ -99,15 +99,15 @@ function LeftPanel() {
             ))}
           </div>
         </div>
-        
+
         {/* Analyze Button */}
         <button
           type="submit"
           disabled={!inputText.trim() || isAnalyzing}
           className={`mt-4 w-full py-3 px-6 rounded-xl font-medium text-white flex items-center justify-center gap-2 transition-all ${
             !inputText.trim() || isAnalyzing
-              ? 'bg-slate-300 cursor-not-allowed'
-              : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5'
+              ? "bg-slate-300 cursor-not-allowed"
+              : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           }`}
         >
           {isAnalyzing ? (
@@ -123,7 +123,7 @@ function LeftPanel() {
           )}
         </button>
       </form>
-      
+
       {/* Tips Section */}
       <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-100 rounded-b-2xl">
         <div className="flex items-start gap-3">
@@ -131,8 +131,9 @@ function LeftPanel() {
           <div>
             <p className="text-sm font-medium text-amber-800">Teacher Tip</p>
             <p className="text-xs text-amber-700 mt-1">
-              Copy text directly from student's work. The AI will identify dyslexia-related 
-              patterns like letter reversals, phonetic confusions, and grammar variations.
+              Copy text directly from student's work. The AI will identify
+              dyslexia-related patterns like letter reversals, phonetic
+              confusions, and grammar variations.
             </p>
           </div>
         </div>

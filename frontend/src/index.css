@@ -7,11 +7,11 @@
   html {
     @apply antialiased;
   }
-  
+
   body {
     @apply bg-gray-50 text-gray-900 font-sans;
   }
-  
+
   /* Sinhala text styling */
   .sinhala-text {
     @apply font-sinhala;
@@ -27,98 +27,98 @@
   .error-token {
     @apply relative inline-block cursor-pointer rounded px-0.5 mx-0.5 transition-all duration-200;
   }
-  
+
   .error-token:hover {
     @apply ring-2 ring-offset-1;
   }
-  
+
   /* Flagged state - needs attention */
   .error-token--flagged {
     @apply bg-akura-error-100 text-akura-error-600;
   }
-  
+
   .error-token--flagged:hover {
     @apply bg-akura-error-200 ring-akura-error-500;
   }
-  
+
   /* Corrected state - fixed */
   .error-token--corrected {
     @apply bg-akura-success-100 text-akura-success-600;
   }
-  
+
   .error-token--corrected:hover {
     @apply bg-akura-success-200 ring-akura-success-500;
   }
-  
+
   /* Ignored state - teacher dismissed */
   .error-token--ignored {
     @apply bg-akura-ignored-50 text-akura-ignored-500 line-through decoration-akura-ignored-500;
   }
-  
+
   /* Pattern type indicators */
   .pattern-visual {
     @apply border-l-2 border-akura-visual-500;
   }
-  
+
   .pattern-phonetic {
     @apply border-l-2 border-akura-phonetic-500;
   }
-  
+
   .pattern-grammar {
     @apply border-l-2 border-akura-grammar-500;
   }
-  
+
   /* Popover styles */
   .popover {
     @apply absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 min-w-[280px];
     @apply animate-slide-up;
   }
-  
+
   /* Button variants */
   .btn {
     @apply inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200;
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  
+
   .btn-primary {
     @apply btn bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
     @apply px-4 py-2;
   }
-  
+
   .btn-secondary {
     @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500;
     @apply px-4 py-2;
   }
-  
+
   .btn-success {
     @apply btn bg-akura-success-500 text-white hover:bg-akura-success-600 focus:ring-akura-success-500;
     @apply px-3 py-1.5 text-sm;
   }
-  
+
   .btn-danger {
     @apply btn bg-akura-error-500 text-white hover:bg-akura-error-600 focus:ring-akura-error-500;
     @apply px-3 py-1.5 text-sm;
   }
-  
+
   .btn-ghost {
     @apply btn bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-300;
     @apply px-3 py-1.5 text-sm;
   }
-  
+
   /* Panel styles */
   .panel {
     @apply bg-white rounded-xl shadow-sm border border-gray-200;
   }
-  
+
   .panel-header {
     @apply px-6 py-4 border-b border-gray-100;
   }
-  
+
   .panel-body {
     @apply p-6;
   }
-  
+
   /* Textarea styling for Sinhala input */
   .sinhala-textarea {
     @apply w-full min-h-[300px] p-4 rounded-lg border border-gray-200;
@@ -126,7 +126,7 @@
     @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
     @apply resize-none;
   }
-  
+
   /* Loading spinner */
   .spinner {
     @apply inline-block w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin;
@@ -139,20 +139,20 @@
   .selection-sinhala::selection {
     @apply bg-blue-200;
   }
-  
+
   /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar {
     @apply w-2;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-track {
     @apply bg-gray-100 rounded;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded hover:bg-gray-400;
   }

@@ -1,20 +1,27 @@
 /**
  * Akura AI - Right Panel Component (Interactive Editor)
- * 
+ *
  * Displays tokenized text with interactive error tokens.
  * Shows analysis results with clickable correction UI.
  */
 
-import React from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Sparkles, Copy, Check } from 'lucide-react';
-import { useAnalysis } from '../context/AnalysisContext';
-import { WORD_STATES, PATTERN_COLORS } from '../constants';
-import ErrorToken from './ErrorToken';
+import React from "react";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Sparkles,
+  Copy,
+  Check,
+} from "lucide-react";
+import { useAnalysis } from "../context/AnalysisContext";
+import { WORD_STATES } from "../constants";
+import ErrorToken from "./ErrorToken";
 
 function RightPanel() {
-  const { 
-    tokens, 
-    isAnalyzing, 
+  const {
+    tokens,
+    isAnalyzing,
     analysisComplete,
     totalErrors,
     correctedCount,
@@ -24,9 +31,9 @@ function RightPanel() {
     modelUsed,
     getFinalText,
   } = useAnalysis();
-  
+
   const [copied, setCopied] = React.useState(false);
-  
+
   // Copy final text to clipboard
   const handleCopy = async () => {
     const finalText = getFinalText();
@@ -34,7 +41,7 @@ function RightPanel() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   // Render placeholder when no analysis
   if (!analysisComplete && !isAnalyzing) {
     return (
@@ -48,14 +55,15 @@ function RightPanel() {
               Ready to Analyze
             </h3>
             <p className="text-sm text-slate-500 max-w-xs mx-auto">
-              Enter text in the left panel and click "Analyze" to see AI-powered dyslexia pattern detection.
+              Enter text in the left panel and click "Analyze" to see AI-powered
+              dyslexia pattern detection.
             </p>
           </div>
         </div>
       </div>
     );
   }
-  
+
   // Render loading state
   if (isAnalyzing) {
     return (
@@ -76,7 +84,7 @@ function RightPanel() {
       </div>
     );
   }
-  
+
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
       {/* Panel Header */}
@@ -91,7 +99,7 @@ function RightPanel() {
               Click on highlighted words to review corrections
             </p>
           </div>
-          
+
           {/* Copy Button */}
           <button
             onClick={handleCopy}
@@ -110,7 +118,7 @@ function RightPanel() {
             )}
           </button>
         </div>
-        
+
         {/* Stats Bar */}
         <div className="flex items-center gap-4 mt-3 text-sm">
           <div className="flex items-center gap-1.5 text-red-600">
@@ -133,19 +141,19 @@ function RightPanel() {
           )}
         </div>
       </div>
-      
+
       {/* Interactive Text Area */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="text-xl leading-relaxed sinhala-text" dir="auto">
           {tokens.map((token) => {
-            if (token.type === 'whitespace') {
+            if (token.type === "whitespace") {
               return <span key={token.id}>{token.displayWord}</span>;
             }
-            
-            if (token.type === 'error') {
+
+            if (token.type === "error") {
               return <ErrorToken key={token.id} token={token} />;
             }
-            
+
             // Normal word
             return (
               <span key={token.id} className="text-slate-800">
@@ -155,7 +163,7 @@ function RightPanel() {
           })}
         </div>
       </div>
-      
+
       {/* Footer Info */}
       <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
         <div className="flex items-center justify-between text-xs text-slate-500">

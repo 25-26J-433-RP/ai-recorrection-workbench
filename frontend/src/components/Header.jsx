@@ -1,16 +1,17 @@
 /**
  * Akura AI - Header Component
- * 
+ *
  * Application header with logo, title, and navigation
  */
 
-import React from 'react';
-import { Brain, FileText, RefreshCw, Moon, Sun } from 'lucide-react';
-import { useAnalysis } from '../context/AnalysisContext';
+import React from "react";
+import { Brain, FileText, RefreshCw, Moon, Sun } from "lucide-react";
+import { useAnalysis } from "../context/AnalysisContext";
 
 function Header() {
-  const { toggleReport, reset, analysisComplete, isDemoMode, apiStatus } = useAnalysis();
-  
+  const { toggleReport, reset, analysisComplete, isDemoMode, apiStatus } =
+    useAnalysis();
+
   return (
     <header className="bg-white shadow-sm border-b border-slate-200">
       <div className="container mx-auto px-4 py-3">
@@ -29,27 +30,35 @@ function Header() {
               </p>
             </div>
           </div>
-          
+
           {/* Status Indicator */}
           <div className="flex items-center gap-2">
-            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-              apiStatus === 'online' 
-                ? 'bg-green-100 text-green-700' 
-                : apiStatus === 'offline'
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-slate-100 text-slate-500'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${
-                apiStatus === 'online' 
-                  ? 'bg-green-500 animate-pulse' 
-                  : apiStatus === 'offline'
-                  ? 'bg-amber-500'
-                  : 'bg-slate-400'
-              }`} />
-              {apiStatus === 'online' ? 'AI Online' : apiStatus === 'offline' ? 'Demo Mode' : 'Connecting...'}
+            <div
+              className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
+                apiStatus === "online"
+                  ? "bg-green-100 text-green-700"
+                  : apiStatus === "offline"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-slate-100 text-slate-500"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  apiStatus === "online"
+                    ? "bg-green-500 animate-pulse"
+                    : apiStatus === "offline"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
+                }`}
+              />
+              {apiStatus === "online"
+                ? "AI Online"
+                : apiStatus === "offline"
+                ? "Demo Mode"
+                : "Connecting..."}
             </div>
           </div>
-          
+
           {/* Actions */}
           <div className="flex items-center gap-2">
             {/* Report Button */}
@@ -62,7 +71,7 @@ function Header() {
                 <span className="text-sm font-medium">View Report</span>
               </button>
             )}
-            
+
             {/* Reset Button */}
             <button
               onClick={reset}
