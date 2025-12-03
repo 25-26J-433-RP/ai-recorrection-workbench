@@ -25,7 +25,9 @@ python generate_training_data.py --output ../data/training_chat.jsonl --count 50
   "output": "මම ගෙදර යනවා",
   "metadata": {
     "error_type": "visual_scrambling",
-    "errors": [{"original": "ගෙදර", "error": "ගෙරද", "type": "visual_scrambling"}]
+    "errors": [
+      { "original": "ගෙදර", "error": "ගෙරද", "type": "visual_scrambling" }
+    ]
   }
 }
 ```
@@ -33,6 +35,7 @@ python generate_training_data.py --output ../data/training_chat.jsonl --count 50
 ## Step 2: Expand Vocabulary (Optional)
 
 Edit `scripts/sinhala_vocabulary.py` to add more:
+
 - Nouns (people, animals, objects, places)
 - Verbs (different tenses and forms)
 - Adjectives and adverbs
@@ -198,12 +201,12 @@ OLLAMA_MODEL=akura-sinhala
 
 ## Expected Results After Fine-Tuning
 
-| Metric | Before | After |
-|--------|--------|-------|
-| Visual Scrambling Accuracy | ~60% | ~95% |
-| Phonetic Confusion Accuracy | ~50% | ~90% |
-| Grammar Correction Accuracy | ~70% | ~95% |
-| Unknown Word Handling | Poor | Good |
+| Metric                      | Before | After |
+| --------------------------- | ------ | ----- |
+| Visual Scrambling Accuracy  | ~60%   | ~95%  |
+| Phonetic Confusion Accuracy | ~50%   | ~90%  |
+| Grammar Correction Accuracy | ~70%   | ~95%  |
+| Unknown Word Handling       | Poor   | Good  |
 
 ## Tips for Better Results
 
@@ -216,15 +219,18 @@ OLLAMA_MODEL=akura-sinhala
 ## Troubleshooting
 
 ### Model not learning Sinhala characters
+
 - Ensure base model supports Sinhala (Llama 3.2 does)
 - Check tokenizer handles Sinhala properly
 
 ### Overfitting
+
 - Reduce epochs
 - Increase dropout
 - Add more diverse training data
 
 ### Slow inference
+
 - Use quantized model (q4_k_m)
 - Reduce max_tokens
 - Use GPU if available
