@@ -1,7 +1,7 @@
 # Akura AI - Docker Compose for Development
 # Includes hot-reload and debug mode
 
-version: '3.8'
+version: "3.8"
 
 services:
   # ============================================

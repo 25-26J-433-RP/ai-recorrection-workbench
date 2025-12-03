@@ -136,6 +136,7 @@ curl -X POST http://localhost:8000/api/v1/analyze \
 ## 📡 API Reference
 
 ### Base URL
+
 ```
 http://localhost:8000/api/v1
 ```
@@ -143,9 +144,11 @@ http://localhost:8000/api/v1
 ### Endpoints
 
 #### `POST /analyze`
+
 Analyze Sinhala text for dyslexic writing errors.
 
 **Request:**
+
 ```json
 {
   "text": "මම ගෙරද යනව",
@@ -154,6 +157,7 @@ Analyze Sinhala text for dyslexic writing errors.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -173,7 +177,7 @@ Analyze Sinhala text for dyslexic writing errors.
       "dyslexiaPattern": "Grammar (Spoken vs Written)",
       "suggestion": "යනවා",
       "explanation": "Incomplete verb ending.",
-      "confidence": 0.90,
+      "confidence": 0.9,
       "source": "rule-based"
     }
   ],
@@ -185,22 +189,23 @@ Analyze Sinhala text for dyslexic writing errors.
 ```
 
 #### `POST /analyze/batch`
+
 Analyze multiple texts in a single request.
 
 **Request:**
+
 ```json
 {
-  "texts": [
-    "මම ගෙරද යනව",
-    "මම පාසැල යනවා"
-  ]
+  "texts": ["මම ගෙරද යනව", "මම පාසැල යනවා"]
 }
 ```
 
 #### `POST /check`
+
 Quick check if text contains any errors.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -210,15 +215,19 @@ Quick check if text contains any errors.
 ```
 
 #### `GET /health`
+
 Check API and LLM health status.
 
 #### `GET /patterns`
+
 List all detectable dyslexia patterns.
 
 #### `GET /corrections`
+
 List all known word corrections.
 
 #### `GET /config`
+
 Get current API configuration.
 
 ---
@@ -324,33 +333,37 @@ docker run -d \
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `HOST` | `0.0.0.0` | Server host |
-| `PORT` | `8000` | Server port |
-| `DEBUG` | `false` | Enable debug mode |
-| `ENVIRONMENT` | `production` | Environment name |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3.2:1b` | Model to use |
-| `OLLAMA_TIMEOUT` | `120` | Request timeout (seconds) |
-| `MODEL_TEMPERATURE` | `0.3` | Model temperature |
-| `MODEL_MAX_TOKENS` | `512` | Max tokens to generate |
-| `AI_CONFIDENCE_THRESHOLD` | `0.7` | Threshold for AI corrections |
-| `LOG_LEVEL` | `INFO` | Logging level |
-| `ALLOWED_ORIGINS` | `*` | CORS allowed origins |
+| Variable                  | Default                  | Description                  |
+| ------------------------- | ------------------------ | ---------------------------- |
+| `HOST`                    | `0.0.0.0`                | Server host                  |
+| `PORT`                    | `8000`                   | Server port                  |
+| `DEBUG`                   | `false`                  | Enable debug mode            |
+| `ENVIRONMENT`             | `production`             | Environment name             |
+| `OLLAMA_BASE_URL`         | `http://localhost:11434` | Ollama server URL            |
+| `OLLAMA_MODEL`            | `llama3.2:1b`            | Model to use                 |
+| `OLLAMA_TIMEOUT`          | `120`                    | Request timeout (seconds)    |
+| `MODEL_TEMPERATURE`       | `0.3`                    | Model temperature            |
+| `MODEL_MAX_TOKENS`        | `512`                    | Max tokens to generate       |
+| `AI_CONFIDENCE_THRESHOLD` | `0.7`                    | Threshold for AI corrections |
+| `LOG_LEVEL`               | `INFO`                   | Logging level                |
+| `ALLOWED_ORIGINS`         | `*`                      | CORS allowed origins         |
 
 ---
 
 ## 📊 Dyslexia Pattern Types
 
 ### 1. Visual Scrambling (30% of errors)
+
 Letters appear in wrong order due to visual sequencing difficulties.
+
 ```
 ගෙරද → ගෙදර
 ```
 
 ### 2. Phonetic Confusion (30% of errors)
+
 Confusion between similar-sounding consonants.
+
 ```
 Dental vs Retroflex:
 - න ↔ ණ
@@ -360,14 +373,18 @@ Dental vs Retroflex:
 ```
 
 ### 3. Grammar/Colloquialisms (20% of errors)
+
 Spoken forms used instead of written forms.
+
 ```
 යනව → යනවා
 මං → මම
 ```
 
 ### 4. Visual Reversal (Shape Confusion)
+
 Confusion between visually similar characters.
+
 ```
 බ ↔ ඩ
 ```

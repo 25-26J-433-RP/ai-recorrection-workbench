@@ -1,7 +1,7 @@
 # Akura AI - Docker Compose Configuration
 # Development and production deployment options
 
-version: '3.8'
+version: "3.8"
 
 services:
   # ============================================
