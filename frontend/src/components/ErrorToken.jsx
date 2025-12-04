@@ -5,10 +5,10 @@
  * Shows popover with correction suggestions.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, X, Edit3, ChevronDown } from 'lucide-react';
-import { useAnalysis } from '../context/AnalysisContext';
-import { WORD_STATES, PATTERN_KEYS, PATTERN_COLORS } from '../constants';
+import React, { useState, useRef, useEffect } from "react";
+import { Check, X, Edit3, ChevronDown } from "lucide-react";
+import { useAnalysis } from "../context/AnalysisContext";
+import { WORD_STATES, PATTERN_KEYS, PATTERN_COLORS } from "../constants";
 
 function ErrorToken({ token }) {
   const {

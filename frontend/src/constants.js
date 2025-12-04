@@ -58,11 +58,11 @@ export const PATTERN_COLORS = {
 
 // Error Types (simplified)
 export const ERROR_TYPES = {
-  VISUAL: 'visual',
-  PHONETIC: 'phonetic',
-  GRAMMAR: 'grammar',
-  REVERSAL: 'reversal',
-  OTHER: 'other',
+  VISUAL: "visual",
+  PHONETIC: "phonetic",
+  GRAMMAR: "grammar",
+  REVERSAL: "reversal",
+  OTHER: "other",
 };
 
 // API Configuration
