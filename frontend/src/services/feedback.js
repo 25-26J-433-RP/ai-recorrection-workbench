@@ -59,7 +59,14 @@ class FeedbackService {
   /**
    * Record teacher's correction decision
    */
-  recordAction(tokenId, action, originalWord, suggestedWord, finalWord, pattern) {
+  recordAction(
+    tokenId,
+    action,
+    originalWord,
+    suggestedWord,
+    finalWord,
+    pattern
+  ) {
     if (!this.currentSession) {
       console.warn("No active session to record feedback");
       return;
@@ -263,7 +270,7 @@ class FeedbackService {
    */
   getStatistics() {
     const sessions = this.getSessionHistory();
-    
+
     let totalCorrections = 0;
     let accepted = 0;
     let rejected = 0;
@@ -275,7 +282,7 @@ class FeedbackService {
       session.corrections.forEach((correction) => {
         if (correction.action) {
           totalCorrections++;
-          
+
           if (correction.action === "accept") accepted++;
           if (correction.action === "reject") rejected++;
           if (correction.action === "edit") {
@@ -290,9 +297,20 @@ class FeedbackService {
 
           // Count patterns
           const pattern = correction.pattern || "Unknown";
-          patternStats[pattern] = patternStats[pattern] || { total: 0, accepted: 0, rejected: 0, edited: 0 };
+          patternStats[pattern] = patternStats[pattern] || {
+            total: 0,
+            accepted: 0,
+            rejected: 0,
+            edited: 0,
+          };
           patternStats[pattern].total++;
-          patternStats[pattern][correction.action === "reject" ? "rejected" : correction.action === "edit" ? "edited" : "accepted"]++;
+          patternStats[pattern][
+            correction.action === "reject"
+              ? "rejected"
+              : correction.action === "edit"
+              ? "edited"
+              : "accepted"
+          ]++;
         }
       });
     });
@@ -303,8 +321,14 @@ class FeedbackService {
       accepted,
       rejected,
       edited,
-      acceptanceRate: totalCorrections > 0 ? ((accepted / totalCorrections) * 100).toFixed(1) : 0,
-      editRate: totalCorrections > 0 ? ((edited / totalCorrections) * 100).toFixed(1) : 0,
+      acceptanceRate:
+        totalCorrections > 0
+          ? ((accepted / totalCorrections) * 100).toFixed(1)
+          : 0,
+      editRate:
+        totalCorrections > 0
+          ? ((edited / totalCorrections) * 100).toFixed(1)
+          : 0,
       patternStats,
       editedCorrections, // These are valuable - shows where AI was wrong
     };
@@ -315,7 +339,7 @@ class FeedbackService {
    */
   queueForSync(data) {
     this.feedbackQueue.push(data);
-    
+
     // Try to sync if we have enough items
     if (this.feedbackQueue.length >= 5) {
       this.syncToBackend();
@@ -353,11 +377,15 @@ class FeedbackService {
    */
   downloadFeedbackData() {
     const data = this.exportForFineTuning();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `akura-feedback-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `akura-feedback-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -371,7 +399,9 @@ class FeedbackService {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `akura-finetune-${new Date().toISOString().split("T")[0]}.jsonl`;
+    a.download = `akura-finetune-${
+      new Date().toISOString().split("T")[0]
+    }.jsonl`;
     a.click();
     URL.revokeObjectURL(url);
   }

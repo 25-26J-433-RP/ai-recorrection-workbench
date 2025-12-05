@@ -319,10 +319,10 @@ export function AnalysisProvider({ children }) {
           state.inputText,
           result
         );
-        
-        dispatch({ 
-          type: ACTIONS.ANALYSIS_SUCCESS, 
-          payload: { ...result, feedbackSessionId } 
+
+        dispatch({
+          type: ACTIONS.ANALYSIS_SUCCESS,
+          payload: { ...result, feedbackSessionId },
         });
       } else {
         dispatch({ type: ACTIONS.ANALYSIS_ERROR, payload: "Analysis failed" });
@@ -332,53 +332,65 @@ export function AnalysisProvider({ children }) {
     }
   }, [state.inputText]);
 
-  const acceptCorrection = useCallback((tokenId) => {
-    // Find the token to get its details for feedback
-    const token = state.tokens.find(t => t.id === tokenId);
-    if (token) {
-      feedbackService.recordAction(
-        tokenId,
-        "accept",
-        token.originalWord,
-        token.correctedWord,
-        token.correctedWord,
-        token.pattern
-      );
-    }
-    dispatch({ type: ACTIONS.ACCEPT_CORRECTION, payload: tokenId });
-  }, [state.tokens]);
+  const acceptCorrection = useCallback(
+    (tokenId) => {
+      // Find the token to get its details for feedback
+      const token = state.tokens.find((t) => t.id === tokenId);
+      if (token) {
+        feedbackService.recordAction(
+          tokenId,
+          "accept",
+          token.originalWord,
+          token.correctedWord,
+          token.correctedWord,
+          token.pattern
+        );
+      }
+      dispatch({ type: ACTIONS.ACCEPT_CORRECTION, payload: tokenId });
+    },
+    [state.tokens]
+  );
 
-  const rejectCorrection = useCallback((tokenId) => {
-    // Find the token to get its details for feedback
-    const token = state.tokens.find(t => t.id === tokenId);
-    if (token) {
-      feedbackService.recordAction(
-        tokenId,
-        "reject",
-        token.originalWord,
-        token.correctedWord,
-        token.originalWord, // Keep original when rejected
-        token.pattern
-      );
-    }
-    dispatch({ type: ACTIONS.REJECT_CORRECTION, payload: tokenId });
-  }, [state.tokens]);
+  const rejectCorrection = useCallback(
+    (tokenId) => {
+      // Find the token to get its details for feedback
+      const token = state.tokens.find((t) => t.id === tokenId);
+      if (token) {
+        feedbackService.recordAction(
+          tokenId,
+          "reject",
+          token.originalWord,
+          token.correctedWord,
+          token.originalWord, // Keep original when rejected
+          token.pattern
+        );
+      }
+      dispatch({ type: ACTIONS.REJECT_CORRECTION, payload: tokenId });
+    },
+    [state.tokens]
+  );
 
-  const editCorrection = useCallback((tokenId, newWord) => {
-    // Find the token to get its details for feedback
-    const token = state.tokens.find(t => t.id === tokenId);
-    if (token) {
-      feedbackService.recordAction(
-        tokenId,
-        "edit",
-        token.originalWord,
-        token.correctedWord,
-        newWord, // Teacher's manual correction
-        token.pattern
-      );
-    }
-    dispatch({ type: ACTIONS.EDIT_CORRECTION, payload: { tokenId, newWord } });
-  }, [state.tokens]);
+  const editCorrection = useCallback(
+    (tokenId, newWord) => {
+      // Find the token to get its details for feedback
+      const token = state.tokens.find((t) => t.id === tokenId);
+      if (token) {
+        feedbackService.recordAction(
+          tokenId,
+          "edit",
+          token.originalWord,
+          token.correctedWord,
+          newWord, // Teacher's manual correction
+          token.pattern
+        );
+      }
+      dispatch({
+        type: ACTIONS.EDIT_CORRECTION,
+        payload: { tokenId, newWord },
+      });
+    },
+    [state.tokens]
+  );
 
   const selectToken = useCallback((tokenId) => {
     dispatch({ type: ACTIONS.SELECT_TOKEN, payload: tokenId });
@@ -438,7 +450,7 @@ export function AnalysisProvider({ children }) {
     checkApiStatus,
     reset,
     getFinalText,
-    
+
     // Feedback actions
     getFeedbackStats,
     exportFeedbackData,
