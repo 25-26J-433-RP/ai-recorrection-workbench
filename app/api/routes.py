@@ -260,3 +260,129 @@ async def get_config() -> dict:
             "environment": settings.environment
         }
     }
+
+
+@router.post(
+    "/feedback",
+    summary="Submit Teacher Feedback",
+    description="Submit teacher correction feedback for model fine-tuning",
+    tags=["Feedback"]
+)
+async def submit_feedback(feedback_data: dict) -> dict:
+    """
+    Receive teacher correction feedback for future model fine-tuning.
+    
+    This endpoint collects:
+    - Accept/Reject/Edit decisions
+    - Original words and corrections
+    - Dyslexia patterns detected
+    - Teacher's manual corrections (most valuable)
+    
+    Args:
+        feedback_data: Dict containing feedback items and timestamp
+        
+    Returns:
+        Dict with success status
+    """
+    import json
+    import os
+    from datetime import datetime
+    
+    try:
+        # Create feedback directory if it doesn't exist
+        feedback_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "feedback")
+        os.makedirs(feedback_dir, exist_ok=True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"feedback_{timestamp}.json"
+        filepath = os.path.join(feedback_dir, filename)
+        
+        # Save feedback data
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(feedback_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Saved feedback to {filepath}")
+        
+        # Also append to cumulative JSONL file for easy training
+        jsonl_path = os.path.join(feedback_dir, "training_data.jsonl")
+        with open(jsonl_path, "a", encoding="utf-8") as f:
+            for item in feedback_data.get("feedback", []):
+                if item.get("type") == "correction_action":
+                    data = item.get("data", {})
+                    if data.get("action") in ["accept", "edit"]:
+                        training_example = {
+                            "instruction": f"Correct the Sinhala dyslexia error. Pattern: {data.get('pattern', 'Unknown')}",
+                            "input": data.get("originalWord", ""),
+                            "output": data.get("finalWord", ""),
+                            "timestamp": data.get("timestamp", ""),
+                            "action": data.get("action", ""),
+                        }
+                        f.write(json.dumps(training_example, ensure_ascii=False) + "\n")
+        
+        return {
+            "success": True,
+            "message": "Feedback saved successfully",
+            "file": filename,
+            "items_received": len(feedback_data.get("feedback", []))
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to save feedback: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/feedback/stats",
+    summary="Get Feedback Statistics",
+    description="Get statistics about collected feedback data",
+    tags=["Feedback"]
+)
+async def get_feedback_stats() -> dict:
+    """
+    Get statistics about collected teacher feedback.
+    
+    Returns:
+        Dict with feedback statistics
+    """
+    import os
+    import json
+    
+    try:
+        feedback_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "feedback")
+        
+        if not os.path.exists(feedback_dir):
+            return {
+                "success": True,
+                "total_files": 0,
+                "total_training_examples": 0,
+                "message": "No feedback data collected yet"
+            }
+        
+        # Count feedback files
+        feedback_files = [f for f in os.listdir(feedback_dir) if f.startswith("feedback_") and f.endswith(".json")]
+        
+        # Count training examples
+        jsonl_path = os.path.join(feedback_dir, "training_data.jsonl")
+        training_count = 0
+        if os.path.exists(jsonl_path):
+            with open(jsonl_path, "r", encoding="utf-8") as f:
+                training_count = sum(1 for _ in f)
+        
+        return {
+            "success": True,
+            "total_files": len(feedback_files),
+            "total_training_examples": training_count,
+            "feedback_directory": feedback_dir
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get feedback stats: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+

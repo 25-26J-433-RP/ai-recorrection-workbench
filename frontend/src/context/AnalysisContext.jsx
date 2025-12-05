@@ -13,6 +13,7 @@ import React, {
 } from "react";
 import { WORD_STATES } from "../constants";
 import apiService from "../services/api";
+import feedbackService from "../services/feedback";
 
 // Initial State
 const initialState = {
@@ -48,6 +49,9 @@ const initialState = {
   // UI state
   selectedTokenId: null,
   showReport: false,
+
+  // Feedback state
+  feedbackSessionId: null,
 
   // Error state
   error: null,
@@ -175,6 +179,7 @@ function analysisReducer(state, action) {
         processingTimeMs,
         modelUsed,
         isDemoMode,
+        feedbackSessionId,
       } = action.payload;
       const tokens = tokenizeWithResults(originalText, data);
       const stats = calculateStats(tokens);
@@ -189,6 +194,7 @@ function analysisReducer(state, action) {
         processingTime: processingTimeMs,
         modelUsed,
         isDemoMode,
+        feedbackSessionId,
         ...stats,
       };
     }
@@ -308,7 +314,16 @@ export function AnalysisProvider({ children }) {
       const result = await apiService.analyzeText(state.inputText);
 
       if (result.success) {
-        dispatch({ type: ACTIONS.ANALYSIS_SUCCESS, payload: result });
+        // Start feedback session for collecting teacher corrections
+        const feedbackSessionId = feedbackService.startSession(
+          state.inputText,
+          result
+        );
+        
+        dispatch({ 
+          type: ACTIONS.ANALYSIS_SUCCESS, 
+          payload: { ...result, feedbackSessionId } 
+        });
       } else {
         dispatch({ type: ACTIONS.ANALYSIS_ERROR, payload: "Analysis failed" });
       }
@@ -318,16 +333,52 @@ export function AnalysisProvider({ children }) {
   }, [state.inputText]);
 
   const acceptCorrection = useCallback((tokenId) => {
+    // Find the token to get its details for feedback
+    const token = state.tokens.find(t => t.id === tokenId);
+    if (token) {
+      feedbackService.recordAction(
+        tokenId,
+        "accept",
+        token.originalWord,
+        token.correctedWord,
+        token.correctedWord,
+        token.pattern
+      );
+    }
     dispatch({ type: ACTIONS.ACCEPT_CORRECTION, payload: tokenId });
-  }, []);
+  }, [state.tokens]);
 
   const rejectCorrection = useCallback((tokenId) => {
+    // Find the token to get its details for feedback
+    const token = state.tokens.find(t => t.id === tokenId);
+    if (token) {
+      feedbackService.recordAction(
+        tokenId,
+        "reject",
+        token.originalWord,
+        token.correctedWord,
+        token.originalWord, // Keep original when rejected
+        token.pattern
+      );
+    }
     dispatch({ type: ACTIONS.REJECT_CORRECTION, payload: tokenId });
-  }, []);
+  }, [state.tokens]);
 
   const editCorrection = useCallback((tokenId, newWord) => {
+    // Find the token to get its details for feedback
+    const token = state.tokens.find(t => t.id === tokenId);
+    if (token) {
+      feedbackService.recordAction(
+        tokenId,
+        "edit",
+        token.originalWord,
+        token.correctedWord,
+        newWord, // Teacher's manual correction
+        token.pattern
+      );
+    }
     dispatch({ type: ACTIONS.EDIT_CORRECTION, payload: { tokenId, newWord } });
-  }, []);
+  }, [state.tokens]);
 
   const selectToken = useCallback((tokenId) => {
     dispatch({ type: ACTIONS.SELECT_TOKEN, payload: tokenId });
@@ -344,13 +395,33 @@ export function AnalysisProvider({ children }) {
   }, []);
 
   const reset = useCallback(() => {
+    // End feedback session and save final text
+    if (state.analysisComplete) {
+      const finalText = state.tokens.map((t) => t.displayWord).join("");
+      feedbackService.endSession(finalText);
+    }
     dispatch({ type: ACTIONS.RESET });
-  }, []);
+  }, [state.analysisComplete, state.tokens]);
 
   // Get final corrected text
   const getFinalText = useCallback(() => {
     return state.tokens.map((t) => t.displayWord).join("");
   }, [state.tokens]);
+
+  // Get feedback statistics
+  const getFeedbackStats = useCallback(() => {
+    return feedbackService.getStatistics();
+  }, []);
+
+  // Export feedback data for fine-tuning
+  const exportFeedbackData = useCallback(() => {
+    feedbackService.downloadFeedbackData();
+  }, []);
+
+  // Export as JSONL for fine-tuning
+  const exportFeedbackJsonl = useCallback(() => {
+    feedbackService.downloadAsJsonl();
+  }, []);
 
   const value = {
     // State
@@ -367,6 +438,11 @@ export function AnalysisProvider({ children }) {
     checkApiStatus,
     reset,
     getFinalText,
+    
+    // Feedback actions
+    getFeedbackStats,
+    exportFeedbackData,
+    exportFeedbackJsonl,
   };
 
   return (
