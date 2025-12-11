@@ -40,3 +40,12 @@ httpx==0.26.0
 # Development
 black==23.12.1
 isort==5.13.2
+
+# Dataset Management
+huggingface_hub==0.20.1
+datasets==2.16.1
+
+# LLM Providers
+langchain-google-genai
+langchain-openai
+python-dotenv
