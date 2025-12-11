@@ -19,8 +19,8 @@ load_dotenv(project_root / ".env")
 # --- Configuration ---
 DATA_FILE = project_root / "data" / "akura_dataset.json"
 OUTPUT_FILE = project_root / "data" / "akura_dataset_synthetic.json"
-BATCH_SIZE = 10  # Generate this many conversation turns per request
-TOTAL_SAMPLES = 50   # Total samples to generate (Demo limit)
+BATCH_SIZE = 20  # Generate this many conversation turns per request
+TOTAL_SAMPLES = 10000   # Total samples to generate
 
 def load_existing_data(filepath: Path) -> List[Dict]:
     """Load existing dataset to use as few-shot examples."""
@@ -120,6 +120,10 @@ def main():
 
     print(f"\n🔄 Generating {TOTAL_SAMPLES} samples in batches of {BATCH_SIZE}...")
     
+    # Check if we are appending to existing synthetic file
+    start_mode = "a" if OUTPUT_FILE.exists() else "w"
+    print(f"   💾 Output will be appended to {OUTPUT_FILE.name}")
+
     while generated_count < TOTAL_SAMPLES:
         print(f"   - Batch {generated_count // BATCH_SIZE + 1}...")
         try:
@@ -131,22 +135,20 @@ def main():
             # Parse the list
             batch_list = json.loads(result)
             
-            generated_data.extend(batch_list)
+            # Append immediately to file (Incremental Saving)
+            with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+                for entry in batch_list:
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            
             generated_count += len(batch_list)
-            print(f"     ✅ +{len(batch_list)} samples generated.")
+            print(f"     ✅ +{len(batch_list)} samples saved. (Total: {generated_count}/{TOTAL_SAMPLES})")
 
         except Exception as e:
             print(f"     ❌ Error in batch: {e}")
             time.sleep(2)
             continue
-
-    # 4. Save
-    print(f"\n💾 Saving to {OUTPUT_FILE.name}...")
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        for entry in generated_data:
-            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     
-    print("🎉 Done! Synthetic dataset created.")
+    print("🎉 Done! Synthetic dataset generation complete.")
 
 if __name__ == "__main__":
     main()
