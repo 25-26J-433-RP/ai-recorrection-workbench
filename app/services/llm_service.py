@@ -8,11 +8,10 @@ Sinhala dyslexia text correction using a fine-tuned SLM.
 import asyncio
 from typing import Optional, Tuple
 
-from langchain.prompts import ChatPromptTemplate, PromptTemplate
-from langchain.schema import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.llms import Ollama
 from langchain_core.output_parsers import StrOutputParser
-from langchain.chains import LLMChain
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
