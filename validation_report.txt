@@ -1,0 +1,31 @@
+============================================================
+COMPREHENSIVE DATASET VALIDATION
+============================================================
+
+📊 Total lines: 10280
+
+--- 1. JSON Parse Errors ---
+✅ No JSON parse errors found.
+
+--- 2. Schema Validation (OpenAI Chat Format) ---
+✅ All entries have valid OpenAI chat format schema.
+
+--- 3. Content Issues ---
+❌ Found 4 content issue(s):
+  Line 3720: ['expected 3 messages, found 2']
+  Line 5542: ['assistant content is not valid JSON']
+  Line 6494: ['expected 3 messages, found 2']
+  Line 8309: ['assistant content is not valid JSON']
+
+--- 4. Duplicate Check ---
+⚠️ Found 1006 duplicate user inputs:
+  "ලමයි සෙල්ලම් කරනවා..." appears on lines: [3, 1395, 2120, 3249, 5132]
+  "අහස නිල් පාටය..." appears on lines: [46, 6929]
+  "මම කෑම කනව..." appears on lines: [85, 1115, 1193, 3950, 4584]
+  "අපි පන්සල් ගියා..." appears on lines: [108, 8947]
+  "එයා ගොඩක් දුකින් හිටියෙ..." appears on lines: [131, 1276]
+  ... and 1001 more duplicates
+
+============================================================
+VALIDATION COMPLETE
+============================================================

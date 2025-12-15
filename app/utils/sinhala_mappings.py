@@ -181,6 +181,24 @@ def get_explanation(pattern: str) -> str:
     return PATTERN_EXPLANATIONS.get(pattern, PATTERN_EXPLANATIONS["Unknown Pattern"])
 
 
+# =============================================================================
+# REMEDIAL ACTION SUGGESTIONS
+# =============================================================================
+
+REMEDIAL_ACTIONS: Dict[str, str] = {
+    "Visual Sequencing (Scrambled)": "Assign visual tracking exercises (e.g., finding the target letter in a sequence of similar letters). Practice left-to-right scanning with a finger.",
+    "Phonetic Confusion (Dental/Retroflex)": "Practice auditory discrimination drills. Have the student listen to pairs of words with Dental/Retroflex sounds and identify the difference. Use tactile cues (tongue position) to reinforce correct pronunciation.",
+    "Visual Reversal (Shape Confusion)": "Use multi-sensory techniques: Clay modeling of the confusing letters, tracing letters in sand, or sky-writing large letters to build muscle memory.",
+    "Grammar (Spoken vs Written)": "Create 'Formal vs. Informal' sorting games. Have the student match spoken phrases with their written counterparts. encourage reading books aloud to internalize written sentence structures.",
+    "Unknown Pattern": "Review the specific word for unique spelling rules or irregularities.",
+}
+
+
+def get_remedial_action(pattern: str) -> str:
+    """Get the remedial action for a given error pattern."""
+    return REMEDIAL_ACTIONS.get(pattern, REMEDIAL_ACTIONS["Unknown Pattern"])
+
+
 def is_sinhala_char(char: str) -> bool:
     """Check if a character is a Sinhala character."""
     # Sinhala Unicode range: 0D80-0DFF
