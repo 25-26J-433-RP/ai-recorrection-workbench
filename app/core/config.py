@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     # LLM Provider: "ollama" or "gemini"
     llm_provider: str = "gemini"  # Default to Gemini until local model is fine-tuned
     
+    # Database Configuration (Supabase PostgreSQL)
+    database_url: str = ""
+    
     @property
     def cors_origins(self) -> List[str]:
         """Parse comma-separated CORS origins into a list."""
