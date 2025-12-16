@@ -11,7 +11,7 @@ import React, {
   useReducer,
   useCallback,
 } from "react";
-import { WORD_STATES } from "../constants";
+import { WORD_STATES, ERROR_TYPES } from "../constants";
 import apiService from "../services/api";
 import feedbackService from "../services/feedback";
 

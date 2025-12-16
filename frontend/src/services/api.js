@@ -5,7 +5,7 @@
  * Includes fallback to demo mode if backend is unavailable.
  */
 
-import { API_CONFIG, DEMO_DATA } from "../constants";
+import { API_CONFIG } from "../constants";
 
 class ApiService {
   constructor() {
