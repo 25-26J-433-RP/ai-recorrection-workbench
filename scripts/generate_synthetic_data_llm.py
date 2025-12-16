@@ -20,7 +20,7 @@ load_dotenv(project_root / ".env")
 DATA_FILE = project_root / "data" / "akura_dataset.json"
 OUTPUT_FILE = project_root / "data" / "akura_dataset_synthetic.json"
 BATCH_SIZE = 20  # Generate this many conversation turns per request
-TOTAL_SAMPLES = 10000   # Total samples to generate
+TOTAL_SAMPLES = 30000   # Total samples to generate
 
 def load_existing_data(filepath: Path) -> List[Dict]:
     """Load existing dataset to use as few-shot examples."""
@@ -40,9 +40,10 @@ def get_llm():
     if os.getenv("OPENAI_API_KEY"):
         print("🤖 Using OpenAI (GPT-4o/Turbo)...")
         return ChatOpenAI(model="gpt-4-turbo-preview", temperature=0.7)
-    elif os.getenv("GOOGLE_API_KEY"):
+    elif os.getenv("GOOGLE_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"):
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("VITE_GEMINI_API_KEY")
         print("🤖 Using Google Gemini (2.0 Flash)...")
-        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7)
+        return ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7, google_api_key=api_key)
     else:
         raise ValueError("❌ No API Key found! Please set OPENAI_API_KEY or GOOGLE_API_KEY in .env")
 

@@ -70,9 +70,11 @@ export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000",
   TIMEOUT: 30000, // 30 seconds
   ENDPOINTS: {
-    ANALYZE: "/analyze",
-    HEALTH: "/health",
-    PATTERNS: "/patterns",
+    ANALYZE: "/api/v1/analyze",
+    HEALTH: "/api/v1/health",
+    PATTERNS: "/api/v1/patterns",
+    OCR: "/api/v1/ocr",
+    OCR_STATUS: "/api/v1/ocr/status",
   },
 };
 

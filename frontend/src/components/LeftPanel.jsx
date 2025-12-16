@@ -94,11 +94,6 @@ function LeftPanel() {
 
       if (result.success) {
         setInputText(result.text);
-        if (result.isDemoMode) {
-          setOcrError(
-            "Demo mode: Using sample text (configure VITE_GEMINI_API_KEY for real OCR)"
-          );
-        }
       } else {
         setOcrError(result.error || "Failed to extract text from image");
       }
@@ -202,13 +197,7 @@ function LeftPanel() {
 
         {/* OCR Error Message */}
         {ocrError && (
-          <div
-            className={`mt-2 px-3 py-2 rounded-lg text-xs flex items-start gap-2 ${
-              ocrError.includes("Demo mode")
-                ? "bg-amber-50 text-amber-700"
-                : "bg-red-50 text-red-700"
-            }`}
-          >
+          <div className="mt-2 px-3 py-2 rounded-lg text-xs flex items-start gap-2 bg-red-50 text-red-700">
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{ocrError}</span>
           </div>

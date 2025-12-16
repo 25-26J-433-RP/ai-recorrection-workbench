@@ -6,7 +6,7 @@ This module defines all API endpoints for the Akura AI backend.
 
 from typing import List
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from loguru import logger
 
 from app.core.config import get_settings
@@ -20,6 +20,7 @@ from app.models.schemas import (
 )
 from app.services.analysis_service import analysis_service
 from app.services.llm_service import llm_service
+from app.services.ocr_service import ocr_service
 
 
 # Create router
@@ -386,3 +387,95 @@ async def get_feedback_stats() -> dict:
             "error": str(e)
         }
 
+
+@router.post(
+    "/ocr",
+    summary="Extract Text from Image",
+    description="Extract Sinhala handwritten text from an uploaded image using OCR",
+    tags=["OCR"]
+)
+async def extract_text_from_image(
+    image: UploadFile = File(..., description="Image file containing Sinhala handwritten text")
+) -> dict:
+    """
+    Extract Sinhala text from an uploaded image.
+    
+    This endpoint:
+    1. Accepts an image file upload
+    2. Uses Gemini Vision API to extract handwritten Sinhala text
+    3. Returns the raw extracted text (without corrections)
+    
+    The extracted text can then be sent to /analyze for dyslexia correction.
+    
+    Args:
+        image: Uploaded image file (JPEG, PNG, WebP, or GIF)
+        
+    Returns:
+        Dict with extracted text and metadata
+    """
+    # Validate file type
+    valid_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if image.content_type not in valid_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type: {image.content_type}. Supported types: {', '.join(valid_types)}"
+        )
+    
+    # Validate file size (max 20MB)
+    max_size = 20 * 1024 * 1024
+    contents = await image.read()
+    if len(contents) > max_size:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File too large. Maximum size is 20MB."
+        )
+    
+    logger.info(f"OCR request: {image.filename}, size={len(contents)} bytes, type={image.content_type}")
+    
+    # Extract text using OCR service
+    success, result, confidence = await ocr_service.extract_text_from_image(
+        image_bytes=contents,
+        mime_type=image.content_type
+    )
+    
+    if not success:
+        logger.error(f"OCR extraction failed: {result}")
+        return {
+            "success": False,
+            "error": result,
+            "text": "",
+            "confidence": 0.0
+        }
+    
+    logger.info(f"OCR extraction successful: {len(result)} characters extracted")
+    
+    return {
+        "success": True,
+        "text": result,
+        "confidence": confidence,
+        "source": "gemini-vision",
+        "filename": image.filename
+    }
+
+
+@router.get(
+    "/ocr/status",
+    summary="OCR Service Status",
+    description="Check if OCR service is configured and available",
+    tags=["OCR"]
+)
+async def ocr_status() -> dict:
+    """
+    Check OCR service configuration status.
+    
+    Returns:
+        Dict with OCR service status
+    """
+    is_healthy, status_msg = await ocr_service.check_health()
+    
+    return {
+        "success": True,
+        "configured": is_healthy,
+        "status": status_msg,
+        "model": settings.gemini_model
+    }

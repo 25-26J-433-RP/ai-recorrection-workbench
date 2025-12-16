@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 100
     rate_limit_period: int = 60
     
+    # Gemini OCR Configuration
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+    
     @property
     def cors_origins(self) -> List[str]:
         """Parse comma-separated CORS origins into a list."""
