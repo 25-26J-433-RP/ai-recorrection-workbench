@@ -1,16 +1,14 @@
 """
 Akura AI - LangChain LLM Service
 
-This module provides the LangChain integration with Ollama for
+This module provides the LangChain integration with Ollama or Gemini for
 Sinhala dyslexia text correction using a fine-tuned SLM.
 """
 
 import asyncio
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
-from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_community.llms import Ollama
+from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -46,29 +44,62 @@ class LLMService:
     """
     LangChain-based LLM service for Sinhala text correction.
     
-    This service uses Ollama with a local LLM (llama3.2:1b) for inference.
-    It's designed to work offline without external API dependencies.
+    This service supports both Ollama (local) and Gemini (cloud) providers.
+    The provider is configured via the LLM_PROVIDER environment variable.
     """
     
     def __init__(self):
-        """Initialize the LLM service with Ollama."""
+        """Initialize the LLM service."""
         self.settings = get_settings()
-        self._llm: Optional[Ollama] = None
+        self._llm = None
         self._chain = None
         self._is_initialized = False
+        self._provider = self.settings.llm_provider
     
     @property
-    def llm(self) -> Ollama:
-        """Lazy initialization of the Ollama LLM."""
+    def llm(self):
+        """Lazy initialization of the LLM based on provider setting."""
         if self._llm is None:
-            self._llm = Ollama(
-                base_url=self.settings.ollama_base_url,
-                model=self.settings.ollama_model,
-                temperature=self.settings.model_temperature,
-                num_predict=self.settings.model_max_tokens,
-            )
-            logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}")
+            if self._provider == "gemini":
+                self._init_gemini()
+            else:
+                self._init_ollama()
         return self._llm
+    
+    def _init_gemini(self):
+        """Initialize Gemini LLM."""
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            
+            if not self.settings.gemini_api_key:
+                logger.warning("GEMINI_API_KEY not set, falling back to Ollama")
+                self._provider = "ollama"
+                self._init_ollama()
+                return
+            
+            self._llm = ChatGoogleGenerativeAI(
+                model=self.settings.gemini_model,
+                google_api_key=self.settings.gemini_api_key,
+                temperature=self.settings.model_temperature,
+                max_output_tokens=self.settings.model_max_tokens,
+            )
+            logger.info(f"Initialized Gemini LLM with model: {self.settings.gemini_model}")
+        except ImportError:
+            logger.error("langchain-google-genai not installed, falling back to Ollama")
+            self._provider = "ollama"
+            self._init_ollama()
+    
+    def _init_ollama(self):
+        """Initialize Ollama LLM."""
+        from langchain_community.llms import Ollama
+        
+        self._llm = Ollama(
+            base_url=self.settings.ollama_base_url,
+            model=self.settings.ollama_model,
+            temperature=self.settings.model_temperature,
+            num_predict=self.settings.model_max_tokens,
+        )
+        logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}")
     
     @property
     def chain(self):
@@ -102,7 +133,7 @@ class LLMService:
     
     async def check_health(self) -> Tuple[bool, str]:
         """
-        Check if the Ollama service is healthy.
+        Check if the LLM service is healthy.
         
         Returns:
             Tuple of (is_healthy, status_message)
@@ -114,11 +145,12 @@ class LLMService:
                 "Hello"
             )
             if response:
-                return True, "Ollama is connected and responding"
-            return False, "Ollama returned empty response"
+                provider = self._provider.capitalize()
+                return True, f"{provider} is connected and responding"
+            return False, "LLM returned empty response"
         except Exception as e:
             logger.error(f"Health check failed: {e}")
-            return False, f"Ollama connection failed: {str(e)}"
+            return False, f"LLM connection failed: {str(e)}"
     
     @retry(
         stop=stop_after_attempt(3),

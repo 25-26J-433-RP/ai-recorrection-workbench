@@ -41,9 +41,12 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 100
     rate_limit_period: int = 60
     
-    # Gemini OCR Configuration
+    # Gemini Configuration (used for OCR and as fallback LLM)
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
+    
+    # LLM Provider: "ollama" or "gemini"
+    llm_provider: str = "gemini"  # Default to Gemini until local model is fine-tuned
     
     @property
     def cors_origins(self) -> List[str]:
