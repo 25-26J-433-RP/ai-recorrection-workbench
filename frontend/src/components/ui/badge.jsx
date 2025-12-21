@@ -3,21 +3,24 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/utils/cn";
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+  "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold transition-all duration-200",
   {
     variants: {
       variant: {
-        default: "bg-slate-100 text-slate-700",
-        primary: "bg-indigo-100 text-indigo-700",
-        secondary: "bg-purple-100 text-purple-700",
-        success: "bg-green-100 text-green-700",
-        warning: "bg-amber-100 text-amber-700",
-        error: "bg-red-100 text-red-700",
-        outline: "border border-slate-200 text-slate-600",
+        default: "bg-primary-100 text-primary-700",
+        primary: "bg-primary-500 text-white shadow-md",
+        secondary: "bg-primary-200 text-primary-800",
+        success: "bg-green-100 text-green-700 border-2 border-green-200",
+        warning: "bg-amber-100 text-amber-700 border-2 border-amber-200",
+        error: "bg-red-100 text-red-600 border-2 border-red-200",
+        outline: "border-2 border-primary-300 text-primary-600 bg-white",
+        // Fun variants for kids
+        fun: "bg-gradient-to-r from-accent-yellow to-accent-orange text-white shadow-md",
+        star: "bg-gradient-to-r from-accent-pink to-accent-purple text-white shadow-md",
         // Status variants
-        online: "bg-green-100 text-green-700",
-        offline: "bg-amber-100 text-amber-700",
-        connecting: "bg-slate-100 text-slate-500",
+        online: "bg-green-100 text-green-700 border-2 border-green-300",
+        offline: "bg-amber-100 text-amber-700 border-2 border-amber-300",
+        connecting: "bg-primary-100 text-primary-600",
       },
     },
     defaultVariants: {

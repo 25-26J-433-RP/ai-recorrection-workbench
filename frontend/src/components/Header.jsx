@@ -1,12 +1,11 @@
 /**
  * Akura AI - Header Component
  *
- * Application header with logo, title, and navigation
- * Using shadcn/ui components for modern styling
+ * Child-friendly header with playful styling and educational theme
  */
 
 import React, { useState } from "react";
-import { Brain, FileText, RefreshCw, Menu, X } from "lucide-react";
+import { BookOpen, FileText, RefreshCw, Menu, X, Sparkles, Star } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { Button, Badge } from "./ui";
 
@@ -16,20 +15,21 @@ function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-40">
+    <header className="bg-white/90 backdrop-blur-md shadow-lg border-b-2 border-primary-200 sticky top-0 z-40">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo & Title */}
+          {/* Logo & Title - Child-friendly with emoji */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Brain className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 animate-bounce-soft">
+              <BookOpen className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800 sinhala-text">
+              <h1 className="text-xl sm:text-2xl font-extrabold text-primary-700 flex items-center gap-2">
                 Akura AI
+                <Sparkles className="w-5 h-5 text-accent-yellow animate-pulse" />
               </h1>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                Intelligent Dyslexia Correction Engine
+              <p className="text-xs sm:text-sm text-primary-500 hidden sm:block font-medium">
+                ✨ Your Smart Learning Helper ✨
               </p>
             </div>
           </div>
@@ -46,24 +46,24 @@ function Header() {
               }
             >
               <span
-                className={`w-2 h-2 rounded-full ${
+                className={`w-2.5 h-2.5 rounded-full ${
                   apiStatus === "online"
                     ? "bg-green-500 animate-pulse"
                     : apiStatus === "offline"
                     ? "bg-amber-500"
-                    : "bg-slate-400"
+                    : "bg-gray-400"
                 }`}
               />
               {apiStatus === "online"
-                ? "AI Online"
+                ? "🟢 Ready to Help!"
                 : apiStatus === "offline"
-                ? "Demo Mode"
-                : "Connecting..."}
+                ? "🟡 Demo Mode"
+                : "⏳ Connecting..."}
             </Badge>
             {apiStatus === "online" && (
-              <Badge variant="secondary">
-                <span className="w-2 h-2 rounded-full bg-purple-500" />
-                Akura LLaMA 8B (Fine-tuned)
+              <Badge variant="star">
+                <Star className="w-4 h-4" />
+                Akura AI Model
               </Badge>
             )}
           </div>
@@ -73,31 +73,31 @@ function Header() {
             {analysisComplete && (
               <Button variant="outline" size="sm" onClick={toggleReport}>
                 <FileText className="w-4 h-4" />
-                <span>View Report</span>
+                <span>📊 Report</span>
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={reset} title="Start over">
               <RefreshCw className="w-4 h-4" />
-              <span>Reset</span>
+              <span>🔄 New</span>
             </Button>
           </div>
 
           {/* Mobile: Hamburger Menu */}
           <button
-            className="md:hidden p-2 rounded-lg hover:bg-slate-100"
+            className="md:hidden p-2 rounded-xl bg-primary-100 hover:bg-primary-200 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? (
-              <X className="w-6 h-6 text-slate-700" />
+              <X className="w-6 h-6 text-primary-600" />
             ) : (
-              <Menu className="w-6 h-6 text-slate-700" />
+              <Menu className="w-6 h-6 text-primary-600" />
             )}
           </button>
         </div>
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-2 border-t border-slate-100 pt-4 space-y-3 animate-fade-in">
+          <div className="md:hidden mt-4 pb-2 border-t-2 border-primary-100 pt-4 space-y-3 animate-fade-in">
             {/* Mobile Status */}
             <div className="flex flex-wrap gap-2">
               <Badge
@@ -115,17 +115,20 @@ function Header() {
                       ? "bg-green-500 animate-pulse"
                       : apiStatus === "offline"
                       ? "bg-amber-500"
-                      : "bg-slate-400"
+                      : "bg-gray-400"
                   }`}
                 />
                 {apiStatus === "online"
-                  ? "AI Online"
+                  ? "🟢 Ready!"
                   : apiStatus === "offline"
-                  ? "Demo Mode"
-                  : "Connecting..."}
+                  ? "🟡 Demo"
+                  : "⏳ Wait..."}
               </Badge>
               {apiStatus === "online" && (
-                <Badge variant="secondary">Akura LLaMA 8B</Badge>
+                <Badge variant="star">
+                  <Star className="w-3 h-3" />
+                  AI Active
+                </Badge>
               )}
             </div>
 
@@ -142,7 +145,7 @@ function Header() {
                   }}
                 >
                   <FileText className="w-4 h-4" />
-                  <span>View Report</span>
+                  <span>📊 Report</span>
                 </Button>
               )}
               <Button
@@ -155,7 +158,7 @@ function Header() {
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>Reset</span>
+                <span>🔄 New</span>
               </Button>
             </div>
           </div>

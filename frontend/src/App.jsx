@@ -1,7 +1,7 @@
 /**
  * Akura AI - Main Application Component
  *
- * Teacher's Cockpit - Split-screen design for dyslexia correction workflow
+ * Teacher's Cockpit - Child-friendly split-screen design for dyslexia correction
  */
 
 import React, { useEffect } from "react";
@@ -21,12 +21,19 @@ function AppContent() {
   }, [checkApiStatus]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col">
+    <div className="min-h-screen fun-gradient flex flex-col relative overflow-hidden">
+      {/* Animated Blob Decorations */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="blob-1 top-0 left-0" />
+        <div className="blob-2 top-1/4 right-0" />
+        <div className="blob-3 bottom-0 left-1/3" />
+      </div>
+
       {/* Header */}
       <Header />
 
       {/* Main Content - Responsive Split Screen */}
-      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 h-full">
           {/* Left Panel - Input */}
           <LeftPanel />
