@@ -84,7 +84,9 @@ function stripPunctuation(word) {
 
 // Helper: Tokenize text and merge with API results
 function tokenizeWithResults(text, apiErrors) {
-  const words = text.split(/(\s+)/); // Keep whitespace
+  // Split by whitespace AND sentence boundaries (. ! ?) while preserving them
+  // This handles cases like "word1.word2" → ["word1.", "word2"]
+  const words = text.split(/(\s+|(?<=[.!?])(?=[^\s]))/);
   const errorMap = new Map();
 
   // Build error lookup - use stripped version as key
