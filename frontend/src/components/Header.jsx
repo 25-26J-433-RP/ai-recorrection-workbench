@@ -32,7 +32,7 @@ function Header() {
           </div>
 
           {/* Status Indicator */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div
               className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
                 apiStatus === "online"
@@ -57,6 +57,12 @@ function Header() {
                 ? "Demo Mode"
                 : "Connecting..."}
             </div>
+            {apiStatus === "online" && (
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                Akura LLaMA 8B (Fine-tuned)
+              </div>
+            )}
           </div>
 
           {/* Actions */}

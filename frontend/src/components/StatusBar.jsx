@@ -34,8 +34,16 @@ function StatusBar() {
 
           {modelUsed && (
             <div className="flex items-center gap-1.5">
-              <Server className="w-3.5 h-3.5 text-slate-500" />
-              <span className="text-slate-500">{modelUsed}</span>
+              <Server className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-purple-400">
+                {modelUsed.includes("akura") || modelUsed.includes("llama") 
+                  ? "Akura LLaMA 8B" 
+                  : modelUsed === "demo-mode" 
+                  ? "Demo Mode" 
+                  : modelUsed.includes("gemini") 
+                  ? "Gemini" 
+                  : modelUsed}
+              </span>
             </div>
           )}
         </div>
