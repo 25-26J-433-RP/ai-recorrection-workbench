@@ -1,96 +1,44 @@
 """
-Akura AI - LangChain LLM Service
+Akura AI - LLM Service (Ollama Only)
 
-This module provides the LangChain integration with Ollama or Gemini for
-Sinhala dyslexia text correction using a fine-tuned SLM.
+This module provides direct integration with the fine-tuned Ollama model
+for Sinhala dyslexia text correction.
 """
 
 import asyncio
-from typing import Optional, Tuple, Union
+import json
+from typing import Optional, Tuple, List, Dict
 
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core.config import get_settings
 
 
-# System prompt for the Sinhala dyslexia correction model
-SYSTEM_PROMPT = """You are an expert Sinhala language teacher specializing in helping dyslexic students.
-Your task is to correct Sinhala text that may contain dyslexic writing errors.
-
-Types of errors to look for and correct:
-1. Visual Scrambling: Letters in wrong order (e.g., ගෙරද → ගෙදර)
-2. Phonetic Confusion: Dental/Retroflex swaps (e.g., න/ණ, ල/ළ, ද/ඩ, ත/ට)
-3. Visual Reversal: Shape confusion (e.g., බ/ඩ)
-4. Grammar Issues: Colloquial to written form (e.g., යනව → යනවා)
-
-IMPORTANT RULES:
-- Only correct actual errors, don't change correct words
-- Preserve the original meaning of the text
-- Output ONLY the corrected text, nothing else
-- Do not add explanations or notes
-- If the text is already correct, output it unchanged"""
-
-CORRECTION_PROMPT = """Correct the following Sinhala text for dyslexic writing errors:
-
-Input: {text}
-
-Corrected output:"""
-
-
 class LLMService:
     """
-    LangChain-based LLM service for Sinhala text correction.
+    LLM service for Sinhala text correction using fine-tuned Ollama model.
     
-    This service supports both Ollama (local) and Gemini (cloud) providers.
-    The provider is configured via the LLM_PROVIDER environment variable.
+    The model expects JSON input and returns JSON output:
+    - Input: {"text": "dyslexic text here"}
+    - Output: {"correction": "corrected text", "analysis": [...]}
     """
     
     def __init__(self):
         """Initialize the LLM service."""
         self.settings = get_settings()
         self._llm = None
-        self._chain = None
         self._is_initialized = False
-        self._provider = self.settings.llm_provider
     
     @property
     def llm(self):
-        """Lazy initialization of the LLM based on provider setting."""
+        """Lazy initialization of the Ollama LLM."""
         if self._llm is None:
-            if self._provider == "gemini":
-                self._init_gemini()
-            else:
-                self._init_ollama()
+            self._init_ollama()
         return self._llm
     
-    def _init_gemini(self):
-        """Initialize Gemini LLM."""
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-            
-            if not self.settings.gemini_api_key:
-                logger.warning("GEMINI_API_KEY not set, falling back to Ollama")
-                self._provider = "ollama"
-                self._init_ollama()
-                return
-            
-            self._llm = ChatGoogleGenerativeAI(
-                model=self.settings.gemini_model,
-                google_api_key=self.settings.gemini_api_key,
-                temperature=self.settings.model_temperature,
-                max_output_tokens=self.settings.model_max_tokens,
-            )
-            logger.info(f"Initialized Gemini LLM with model: {self.settings.gemini_model}")
-        except ImportError:
-            logger.error("langchain-google-genai not installed, falling back to Ollama")
-            self._provider = "ollama"
-            self._init_ollama()
-    
     def _init_ollama(self):
-        """Initialize Ollama LLM."""
+        """Initialize Ollama LLM with the fine-tuned model."""
         from langchain_community.llms import Ollama
         
         self._llm = Ollama(
@@ -101,18 +49,6 @@ class LLMService:
         )
         logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}")
     
-    @property
-    def chain(self):
-        """Lazy initialization of the LangChain correction chain."""
-        if self._chain is None:
-            prompt = PromptTemplate(
-                input_variables=["text"],
-                template=f"{SYSTEM_PROMPT}\n\n{CORRECTION_PROMPT}"
-            )
-            self._chain = prompt | self.llm | StrOutputParser()
-            logger.info("Initialized LangChain correction chain")
-        return self._chain
-    
     async def initialize(self) -> bool:
         """
         Initialize the LLM service and verify connection.
@@ -121,7 +57,7 @@ class LLMService:
             True if initialization successful, False otherwise
         """
         try:
-            # Test connection with a simple query
+            # Test connection by accessing the llm property
             _ = self.llm
             self._is_initialized = True
             logger.info("LLM service initialized successfully")
@@ -145,12 +81,121 @@ class LLMService:
                 "Hello"
             )
             if response:
-                provider = self._provider.capitalize()
-                return True, f"{provider} is connected and responding"
+                return True, f"Ollama ({self.settings.ollama_model}) is connected"
             return False, "LLM returned empty response"
         except Exception as e:
             logger.error(f"Health check failed: {e}")
-            return False, f"LLM connection failed: {str(e)}"
+            return False, f"Ollama connection failed: {str(e)}"
+    
+    async def correct_word(self, word: str) -> Tuple[str, float, str]:
+        """
+        Correct a single Sinhala word using the fine-tuned Ollama model.
+        
+        Args:
+            word: The single Sinhala word to correct
+            
+        Returns:
+            Tuple of (corrected_word, confidence_score, error_type)
+        """
+        try:
+            response = await asyncio.to_thread(
+                self.llm.invoke,
+                word
+            )
+            
+            if not response:
+                logger.warning(f"Empty response for word: {word}")
+                return word, 1.0, ""
+            
+            # Parse the response for a single word
+            corrected, error_type = self._parse_word_response(response.strip(), word)
+            
+            # Calculate confidence
+            if corrected != word:
+                confidence = 0.9
+            else:
+                confidence = 1.0
+            
+            logger.debug(f"Word '{word}' -> '{corrected}' (type: {error_type})")
+            
+            return corrected, confidence, error_type
+            
+        except Exception as e:
+            logger.error(f"Error correcting word '{word}': {e}")
+            return word, 0.5, ""
+    
+    async def correct_words_batch(self, words: List[str]) -> List[Tuple[str, str, float, str]]:
+        """
+        Correct multiple words by processing each through the LLM.
+        
+        Args:
+            words: List of words to correct
+            
+        Returns:
+            List of tuples: (original_word, corrected_word, confidence, error_type)
+        """
+        results = []
+        
+        for word in words:
+            # Skip empty or whitespace-only words
+            if not word.strip():
+                results.append((word, word, 1.0, ""))
+                continue
+            
+            corrected, confidence, error_type = await self.correct_word(word)
+            results.append((word, corrected, confidence, error_type))
+        
+        return results
+    
+    def _parse_word_response(self, response: str, original_word: str) -> Tuple[str, str]:
+        """
+        Parse the model response for a single word correction.
+        
+        Args:
+            response: Raw response from the model
+            original_word: Original input word
+            
+        Returns:
+            Tuple of (corrected_word, error_type)
+        """
+        response = response.strip()
+        error_type = ""
+        
+        # Try to parse as JSON first
+        try:
+            if "{" in response:
+                start = response.find("{")
+                end = response.rfind("}") + 1
+                if start != -1 and end > start:
+                    json_str = response[start:end]
+                    data = json.loads(json_str)
+                    
+                    correction = data.get("correction", original_word)
+                    analysis = data.get("analysis", [])
+                    
+                    if analysis and len(analysis) > 0:
+                        error_type = analysis[0].get("type", "")
+                    
+                    # Extract just the first word from correction
+                    corrected_words = correction.split()
+                    if corrected_words:
+                        return corrected_words[0], error_type
+                    return correction, error_type
+        except json.JSONDecodeError:
+            pass
+        except Exception as e:
+            logger.debug(f"Error parsing JSON response: {e}")
+        
+        # Treat as plain text - get first word
+        corrected = response.split()[0] if response.split() else original_word
+        
+        # Remove quotes
+        if corrected.startswith('"') and corrected.endswith('"'):
+            corrected = corrected[1:-1]
+        if corrected.startswith("'") and corrected.endswith("'"):
+            corrected = corrected[1:-1]
+        
+        return corrected, error_type
     
     @retry(
         stop=stop_after_attempt(3),
@@ -158,7 +203,9 @@ class LLMService:
     )
     async def correct_text(self, text: str) -> Tuple[str, float]:
         """
-        Correct Sinhala text using the LLM.
+        Correct Sinhala text using the fine-tuned Ollama model.
+        
+        The model expects input in the format that matches the training data.
         
         Args:
             text: The Sinhala text to correct
@@ -167,23 +214,18 @@ class LLMService:
             Tuple of (corrected_text, confidence_score)
         """
         try:
-            # Run the chain
-            corrected = await asyncio.to_thread(
-                self.chain.invoke,
-                {"text": text}
+            # Send text directly to the model (it was trained on the dataset format)
+            response = await asyncio.to_thread(
+                self.llm.invoke,
+                text
             )
             
-            # Clean up the response
-            corrected = corrected.strip()
+            if not response:
+                logger.warning("Empty response from Ollama")
+                return text, 0.0
             
-            # Remove any quotes or extra formatting
-            if corrected.startswith('"') and corrected.endswith('"'):
-                corrected = corrected[1:-1]
-            if corrected.startswith("'") and corrected.endswith("'"):
-                corrected = corrected[1:-1]
-            
-            # Calculate confidence based on response coherence
-            confidence = self._calculate_confidence(text, corrected)
+            # Try to parse JSON response
+            corrected, confidence, analysis = self._parse_response(response.strip(), text)
             
             logger.debug(f"Corrected '{text}' to '{corrected}' with confidence {confidence}")
             
@@ -191,104 +233,122 @@ class LLMService:
             
         except Exception as e:
             logger.error(f"Error correcting text: {e}")
-            # Return original text with low confidence on error
             return text, 0.0
     
-    async def correct_text_with_context(
-        self,
-        text: str,
-        context: Optional[str] = None
-    ) -> Tuple[str, float]:
+    async def correct_text_with_analysis(self, text: str) -> Tuple[str, float, List[Dict]]:
         """
-        Correct text with additional context for better accuracy.
+        Correct Sinhala text and return full analysis.
         
         Args:
             text: The Sinhala text to correct
-            context: Optional context about the text (e.g., subject, grade level)
             
         Returns:
-            Tuple of (corrected_text, confidence_score)
+            Tuple of (corrected_text, confidence_score, analysis_list)
         """
-        if context:
-            enhanced_prompt = f"""Context: {context}
-
-Correct the following Sinhala text for dyslexic writing errors:
-
-Input: {text}
-
-Corrected output:"""
+        try:
+            response = await asyncio.to_thread(
+                self.llm.invoke,
+                text
+            )
             
-            full_prompt = f"{SYSTEM_PROMPT}\n\n{enhanced_prompt}"
+            if not response:
+                logger.warning("Empty response from Ollama")
+                return text, 0.0, []
             
-            try:
-                response = await asyncio.to_thread(
-                    self.llm.invoke,
-                    full_prompt
-                )
-                corrected = response.strip()
-                confidence = self._calculate_confidence(text, corrected)
-                return corrected, confidence
-            except Exception as e:
-                logger.error(f"Error in context-aware correction: {e}")
-                return await self.correct_text(text)
+            corrected, confidence, analysis = self._parse_response(response.strip(), text)
+            
+            return corrected, confidence, analysis
+            
+        except Exception as e:
+            logger.error(f"Error correcting text with analysis: {e}")
+            return text, 0.0, []
+    
+    def _parse_response(self, response: str, original_text: str) -> Tuple[str, float, List[Dict]]:
+        """
+        Parse the model response, handling both JSON and plain text formats.
+        
+        Args:
+            response: Raw response from the model
+            original_text: Original input text
+            
+        Returns:
+            Tuple of (corrected_text, confidence, analysis_list)
+        """
+        # Clean up response
+        response = response.strip()
+        
+        # Try to parse as JSON first
+        try:
+            # Handle case where response might be wrapped in markdown code blocks
+            if response.startswith("```"):
+                lines = response.split("\n")
+                json_lines = []
+                in_block = False
+                for line in lines:
+                    if line.startswith("```"):
+                        in_block = not in_block
+                        continue
+                    if in_block or not line.startswith("```"):
+                        json_lines.append(line)
+                response = "\n".join(json_lines).strip()
+            
+            # Try to find JSON in the response
+            if "{" in response:
+                # Find the JSON part
+                start = response.find("{")
+                end = response.rfind("}") + 1
+                if start != -1 and end > start:
+                    json_str = response[start:end]
+                    data = json.loads(json_str)
+                    
+                    correction = data.get("correction", original_text)
+                    analysis = data.get("analysis", [])
+                    
+                    # Calculate confidence based on analysis
+                    if analysis:
+                        confidence = 0.9  # High confidence if model provided analysis
+                    elif correction != original_text:
+                        confidence = 0.8  # Good confidence if there was a correction
+                    else:
+                        confidence = 1.0  # Original text returned (no errors found)
+                    
+                    return correction, confidence, analysis
+        except json.JSONDecodeError:
+            logger.debug("Response is not valid JSON, treating as plain text")
+        except Exception as e:
+            logger.debug(f"Error parsing JSON: {e}")
+        
+        # If not JSON, treat as plain text correction
+        corrected = response
+        
+        # Remove common prefixes the model might add
+        prefixes_to_remove = [
+            "Corrected output:",
+            "Output:",
+            "Correction:",
+            "corrected:",
+        ]
+        for prefix in prefixes_to_remove:
+            if corrected.lower().startswith(prefix.lower()):
+                corrected = corrected[len(prefix):].strip()
+        
+        # Remove quotes if present
+        if corrected.startswith('"') and corrected.endswith('"'):
+            corrected = corrected[1:-1]
+        if corrected.startswith("'") and corrected.endswith("'"):
+            corrected = corrected[1:-1]
+        
+        # Calculate confidence
+        if corrected != original_text:
+            confidence = 0.75  # Moderate confidence for plain text response
         else:
-            return await self.correct_text(text)
+            confidence = 1.0
+        
+        return corrected, confidence, []
     
-    def _calculate_confidence(self, original: str, corrected: str) -> float:
-        """
-        Calculate a confidence score for the correction.
-        
-        Args:
-            original: Original text
-            corrected: Corrected text
-            
-        Returns:
-            Confidence score between 0.0 and 1.0
-        """
-        if not corrected:
-            return 0.0
-        
-        if original == corrected:
-            return 1.0  # No changes needed = high confidence
-        
-        # Calculate based on edit distance ratio
-        from difflib import SequenceMatcher
-        similarity = SequenceMatcher(None, original, corrected).ratio()
-        
-        # If too different (less than 30% similar), low confidence
-        if similarity < 0.3:
-            return 0.3
-        
-        # If very similar with small changes, high confidence
-        if similarity > 0.8:
-            return 0.9
-        
-        # Scale confidence based on similarity
-        return min(0.5 + similarity * 0.4, 0.95)
-    
-    async def batch_correct(
-        self,
-        texts: list[str],
-        max_concurrent: int = 5
-    ) -> list[Tuple[str, float]]:
-        """
-        Correct multiple texts concurrently.
-        
-        Args:
-            texts: List of texts to correct
-            max_concurrent: Maximum concurrent requests
-            
-        Returns:
-            List of (corrected_text, confidence) tuples
-        """
-        semaphore = asyncio.Semaphore(max_concurrent)
-        
-        async def correct_with_semaphore(text: str) -> Tuple[str, float]:
-            async with semaphore:
-                return await self.correct_text(text)
-        
-        tasks = [correct_with_semaphore(text) for text in texts]
-        return await asyncio.gather(*tasks)
+    def get_model_name(self) -> str:
+        """Get the name of the currently configured model."""
+        return self.settings.ollama_model
 
 
 # Create singleton instance

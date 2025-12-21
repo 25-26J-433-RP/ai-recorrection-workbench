@@ -1,102 +1,135 @@
 /**
  * Akura AI - Header Component
  *
- * Grammarly-inspired clean header with correct model name
+ * Application header with logo, title, and navigation
+ * Using shadcn/ui components for modern styling
  */
 
 import React, { useState } from "react";
-import { Brain, FileText, RefreshCw, Menu, X, Circle } from "lucide-react";
+import { Brain, FileText, RefreshCw, Menu, X } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { Button, Badge } from "./ui";
 
 function Header() {
-  const { toggleReport, reset, analysisComplete, apiStatus, modelUsed } = useAnalysis();
+  const { toggleReport, reset, analysisComplete, isDemoMode, apiStatus } =
+    useAnalysis();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Get clean model name
-  const getModelDisplayName = () => {
-    if (!modelUsed) return null;
-    if (modelUsed.includes("akura") || modelUsed.includes("llama")) {
-      return "Akura LLaMA 8B";
-    }
-    if (modelUsed === "demo-mode") return "Demo Mode";
-    if (modelUsed.includes("gemini")) return "Gemini";
-    return modelUsed;
-  };
-
   return (
-    <header className="bg-white border-b border-neutral-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+    <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-40">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-grammarly-green flex items-center justify-center">
-              <Brain className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Brain className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-neutral-900">Akura</h1>
-              <p className="text-xs text-neutral-500 hidden sm:block">
-                Sinhala Writing Assistant
+              <h1 className="text-xl font-bold text-slate-800 sinhala-text">
+                Akura AI
+              </h1>
+              <p className="text-xs text-slate-500 hidden sm:block">
+                Intelligent Dyslexia Correction Engine
               </p>
             </div>
           </div>
 
-          {/* Center - Model & Status */}
+          {/* Desktop: Status Indicators */}
           <div className="hidden md:flex items-center gap-3">
-            <Badge variant={apiStatus === "online" ? "online" : "offline"}>
-              <Circle
-                className={`w-2 h-2 ${
-                  apiStatus === "online" ? "fill-grammarly-green text-grammarly-green" : "fill-grammarly-orange text-grammarly-orange"
+            <Badge
+              variant={
+                apiStatus === "online"
+                  ? "online"
+                  : apiStatus === "offline"
+                  ? "offline"
+                  : "connecting"
+              }
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  apiStatus === "online"
+                    ? "bg-green-500 animate-pulse"
+                    : apiStatus === "offline"
+                    ? "bg-amber-500"
+                    : "bg-slate-400"
                 }`}
               />
-              {apiStatus === "online" ? "Connected" : "Demo"}
+              {apiStatus === "online"
+                ? "AI Online"
+                : apiStatus === "offline"
+                ? "Offline"
+                : "Connecting..."}
             </Badge>
-            {getModelDisplayName() && (
-              <Badge variant="default">
-                {getModelDisplayName()}
+            {apiStatus === "online" && (
+              <Badge variant="secondary">
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                Akura LLaMA 8B (Fine-tuned)
               </Badge>
             )}
           </div>
 
-          {/* Actions */}
+          {/* Desktop: Actions */}
           <div className="hidden md:flex items-center gap-2">
             {analysisComplete && (
               <Button variant="outline" size="sm" onClick={toggleReport}>
                 <FileText className="w-4 h-4" />
-                Report
+                <span>View Report</span>
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={reset}>
+            <Button variant="ghost" size="sm" onClick={reset} title="Start over">
               <RefreshCw className="w-4 h-4" />
-              New
+              <span>Reset</span>
             </Button>
           </div>
 
-          {/* Mobile */}
+          {/* Mobile: Hamburger Menu */}
           <button
-            className="md:hidden p-2 text-neutral-600 hover:bg-neutral-100 rounded-md"
+            className="md:hidden p-2 rounded-lg hover:bg-slate-100"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6 text-slate-700" />
+            ) : (
+              <Menu className="w-6 h-6 text-slate-700" />
+            )}
           </button>
         </div>
 
-        {/* Mobile dropdown */}
+        {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-neutral-100 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge variant={apiStatus === "online" ? "online" : "offline"}>
-                <Circle
-                  className={`w-2 h-2 ${
-                    apiStatus === "online" ? "fill-grammarly-green text-grammarly-green" : "fill-grammarly-orange text-grammarly-orange"
+          <div className="md:hidden mt-4 pb-2 border-t border-slate-100 pt-4 space-y-3 animate-fade-in">
+            {/* Mobile Status */}
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant={
+                  apiStatus === "online"
+                    ? "online"
+                    : apiStatus === "offline"
+                    ? "offline"
+                    : "connecting"
+                }
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    apiStatus === "online"
+                      ? "bg-green-500 animate-pulse"
+                      : apiStatus === "offline"
+                      ? "bg-amber-500"
+                      : "bg-slate-400"
                   }`}
                 />
-                {apiStatus === "online" ? "Connected" : "Demo"}
+                {apiStatus === "online"
+                  ? "AI Online"
+                  : apiStatus === "offline"
+                  ? "Demo Mode"
+                  : "Connecting..."}
               </Badge>
-              {getModelDisplayName() && (
-                <Badge variant="default">{getModelDisplayName()}</Badge>
+              {apiStatus === "online" && (
+                <Badge variant="secondary">Akura LLaMA 8B</Badge>
               )}
             </div>
+
+            {/* Mobile Actions */}
             <div className="flex gap-2">
               {analysisComplete && (
                 <Button
@@ -109,7 +142,7 @@ function Header() {
                   }}
                 >
                   <FileText className="w-4 h-4" />
-                  Report
+                  <span>View Report</span>
                 </Button>
               )}
               <Button
@@ -122,7 +155,7 @@ function Header() {
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
-                New
+                <span>Reset</span>
               </Button>
             </div>
           </div>

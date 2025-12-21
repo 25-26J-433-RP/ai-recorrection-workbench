@@ -1,22 +1,22 @@
 /**
  * Akura AI - Report Modal Component
  *
- * Grammarly-style detailed report
+ * Displays a detailed analysis report with statistics and feedback export.
  */
 
-import React, { useMemo } from "react";
+import React from "react";
 import {
   X,
-  BarChart3,
-  FileText,
   Download,
   CheckCircle2,
   XCircle,
-  AlertCircle,
-  Brain,
+  AlertTriangle,
+  FileJson,
+  BarChart3,
+  Clock,
+  Cpu,
 } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
-import { Button } from "./ui";
 
 function ReportModal() {
   const {
@@ -24,191 +24,188 @@ function ReportModal() {
     totalErrors,
     correctedCount,
     ignoredCount,
-    pendingCount,
-    patternDistribution,
-    originalText,
-    getFinalText,
     processingTime,
     modelUsed,
     tokens,
+    originalText,
+    getFinalText,
+    getFeedbackStats,
+    exportFeedbackData,
     exportFeedbackJsonl,
   } = useAnalysis();
 
-  const totalPatterns = Object.values(patternDistribution).reduce((a, b) => a + b, 0);
-  const patternPercentages = Object.entries(patternDistribution).map(
-    ([pattern, count]) => ({
-      pattern,
-      count,
-      percentage: totalPatterns > 0 ? Math.round((count / totalPatterns) * 100) : 0,
-    })
-  );
+  const stats = getFeedbackStats();
+  const finalText = getFinalText();
 
-  const errorTokens = tokens.filter((t) => t.type === "error");
-  const score = totalErrors > 0 ? Math.round(((totalErrors - pendingCount) / totalErrors) * 100) : 100;
+  // Calculate pattern distribution
+  const patternCounts = tokens
+    .filter((t) => t.type === "error")
+    .reduce((acc, t) => {
+      const pattern = t.pattern || "Unknown";
+      acc[pattern] = (acc[pattern] || 0) + 1;
+      return acc;
+    }, {});
 
+  // Format model name
   const getModelDisplayName = () => {
-    if (!modelUsed) return modelUsed;
+    if (!modelUsed) return "Unknown";
     if (modelUsed.includes("akura") || modelUsed.includes("llama")) {
-      return "Akura LLaMA 8B";
+      return "Akura LLaMA 8B (Fine-tuned)";
     }
-    if (modelUsed === "demo-mode") return "Demo Mode";
+    if (modelUsed.includes("gemini")) return "Gemini";
     return modelUsed;
   };
 
-  const handleExport = () => {
-    const report = `
-AKURA AI - Writing Analysis Report
-===================================
-Date: ${new Date().toLocaleString()}
-Model: ${getModelDisplayName()}
-Processing Time: ${processingTime?.toFixed(0)}ms
-
-Original Text:
-${originalText}
-
-Corrected Text:
-${getFinalText()}
-
-Statistics:
-- Total Issues: ${totalErrors}
-- Corrected: ${correctedCount}
-- Dismissed: ${ignoredCount}
-- Score: ${score}%
-
-Pattern Distribution:
-${patternPercentages.map((p) => `- ${p.pattern}: ${p.count} (${p.percentage}%)`).join("\n")}
-    `.trim();
-
-    const blob = new Blob([report], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `akura-report-${Date.now()}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl max-h-[85vh] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-neutral-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-800">Writing Report</h2>
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">
+                Analysis Report
+              </h2>
+              <p className="text-sm text-slate-500">
+                Summary of corrections and patterns
+              </p>
+            </div>
+          </div>
           <button
             onClick={toggleReport}
-            className="p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-slate-500" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {/* Score Header */}
-          <div className="flex items-center gap-6 p-4 bg-grammarly-green-light rounded-lg">
-            <div className="relative w-16 h-16">
-              <svg className="w-16 h-16 transform -rotate-90">
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="#E8FAF5"
-                  strokeWidth="6"
-                  fill="none"
-                />
-                <circle
-                  cx="32"
-                  cy="32"
-                  r="28"
-                  stroke="#15C39A"
-                  strokeWidth="6"
-                  fill="none"
-                  strokeDasharray={`${score * 1.76} 176`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-bold text-grammarly-green-dark">{score}</span>
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-red-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-red-600 mb-1">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-sm font-medium">Errors</span>
               </div>
+              <span className="text-2xl font-bold text-red-700">
+                {totalErrors}
+              </span>
             </div>
-            <div>
-              <p className="text-lg font-semibold text-grammarly-green-dark">
-                {score >= 80 ? "Great work!" : score >= 50 ? "Good progress" : "Keep improving"}
-              </p>
-              <p className="text-sm text-grammarly-green">
-                {correctedCount} of {totalErrors} issues addressed
-              </p>
+            <div className="bg-green-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-green-600 mb-1">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="text-sm font-medium">Corrected</span>
+              </div>
+              <span className="text-2xl font-bold text-green-700">
+                {correctedCount}
+              </span>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-slate-600 mb-1">
+                <XCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Ignored</span>
+              </div>
+              <span className="text-2xl font-bold text-slate-700">
+                {ignoredCount}
+              </span>
+            </div>
+            <div className="bg-indigo-50 rounded-xl p-4">
+              <div className="flex items-center gap-2 text-indigo-600 mb-1">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-medium">Time</span>
+              </div>
+              <span className="text-2xl font-bold text-indigo-700">
+                {processingTime?.toFixed(0)}ms
+              </span>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-4 bg-neutral-50 rounded-lg text-center">
-              <AlertCircle className="w-5 h-5 text-grammarly-red mx-auto mb-2" />
-              <p className="text-2xl font-bold text-neutral-800">{totalErrors}</p>
-              <p className="text-xs text-neutral-500">Issues found</p>
-            </div>
-            <div className="p-4 bg-neutral-50 rounded-lg text-center">
-              <CheckCircle2 className="w-5 h-5 text-grammarly-green mx-auto mb-2" />
-              <p className="text-2xl font-bold text-neutral-800">{correctedCount}</p>
-              <p className="text-xs text-neutral-500">Corrected</p>
-            </div>
-            <div className="p-4 bg-neutral-50 rounded-lg text-center">
-              <XCircle className="w-5 h-5 text-neutral-400 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-neutral-800">{ignoredCount}</p>
-              <p className="text-xs text-neutral-500">Dismissed</p>
+          {/* Model Info */}
+          <div className="bg-purple-50 rounded-xl p-4 flex items-center gap-3">
+            <Cpu className="w-5 h-5 text-purple-600" />
+            <div>
+              <span className="text-sm text-purple-600 font-medium">
+                Model Used
+              </span>
+              <p className="text-purple-800 font-semibold">
+                {getModelDisplayName()}
+              </p>
             </div>
           </div>
 
           {/* Pattern Distribution */}
-          <div>
-            <h3 className="text-sm font-medium text-neutral-700 mb-3">Issue Types</h3>
-            <div className="space-y-3">
-              {patternPercentages.map(({ pattern, count, percentage }) => (
-                <div key={pattern}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-neutral-600">{pattern}</span>
-                    <span className="text-neutral-400">{count}</span>
+          {Object.keys(patternCounts).length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                Pattern Distribution
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(patternCounts).map(([pattern, count]) => (
+                  <div key={pattern} className="flex items-center gap-3">
+                    <span className="text-sm text-slate-600 flex-1 truncate">
+                      {pattern}
+                    </span>
+                    <div className="flex-1 bg-slate-100 rounded-full h-2">
+                      <div
+                        className="bg-indigo-500 rounded-full h-2"
+                        style={{
+                          width: `${(count / totalErrors) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 w-8 text-right">
+                      {count}
+                    </span>
                   </div>
-                  <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-grammarly-green rounded-full transition-all"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Text Comparison */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-grammarly-red-light rounded-lg">
-              <p className="text-xs font-medium text-grammarly-red mb-2">Original</p>
-              <p className="text-sm text-neutral-700 sinhala-text">{originalText}</p>
-            </div>
-            <div className="p-4 bg-grammarly-green-light rounded-lg">
-              <p className="text-xs font-medium text-grammarly-green-dark mb-2">Corrected</p>
-              <p className="text-sm text-neutral-700 sinhala-text">{getFinalText()}</p>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              Text Comparison
+            </h3>
+            <div className="grid gap-4">
+              <div className="bg-red-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-red-600 uppercase tracking-wider">
+                  Original
+                </span>
+                <p className="text-slate-800 mt-1 sinhala-text">
+                  {originalText}
+                </p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-green-600 uppercase tracking-wider">
+                  Corrected
+                </span>
+                <p className="text-slate-800 mt-1 sinhala-text">{finalText}</p>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-neutral-200 flex items-center justify-between bg-neutral-50">
-          <span className="text-xs text-neutral-400">
-            {getModelDisplayName()} • {processingTime?.toFixed(0)}ms
-          </span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-            <Button size="sm" onClick={exportFeedbackJsonl}>
-              <Brain className="w-4 h-4" />
-              Training Data
-            </Button>
-          </div>
+        <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row gap-2 sm:justify-end">
+          <button
+            onClick={exportFeedbackData}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium"
+          >
+            <Download className="w-4 h-4" />
+            Export JSON
+          </button>
+          <button
+            onClick={exportFeedbackJsonl}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors text-sm font-medium"
+          >
+            <FileJson className="w-4 h-4" />
+            Export JSONL (Fine-tuning)
+          </button>
         </div>
       </div>
     </div>

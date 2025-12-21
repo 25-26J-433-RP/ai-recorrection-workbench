@@ -1,136 +1,206 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* shadcn/ui animation classes */
 @layer base {
   * {
-    border-color: #EEEEEE;
+    @apply border-slate-200;
   }
 
   html {
-    @apply antialiased;
+    @apply antialiased scroll-smooth;
   }
 
   body {
-    @apply bg-white text-neutral-800 font-sans;
+    @apply bg-slate-50 text-slate-900 font-sans;
   }
 
+  /* Sinhala text styling */
   .sinhala-text {
     @apply font-sinhala;
     font-feature-settings: "kern" 1;
     line-height: 1.8;
+    letter-spacing: 0.02em;
   }
 }
 
-@layer components {
-  /* Grammarly-style error underlines */
-  .error-underline {
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-  }
-
-  .error-underline::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 2px;
-    border-radius: 1px;
-  }
-
-  /* Error types with colored underlines */
-  .error-underline--spelling::after {
-    background-color: #E94949;
-  }
-
-  .error-underline--spelling:hover {
-    background-color: #FDF2F2;
-  }
-
-  .error-underline--grammar::after {
-    background-color: #F5A623;
-  }
-
-  .error-underline--grammar:hover {
-    background-color: #FEF8EC;
-  }
-
-  .error-underline--suggestion::after {
-    background-color: #5D9CEC;
-  }
-
-  .error-underline--suggestion:hover {
-    background-color: #EEF5FF;
-  }
-
-  /* Corrected state */
-  .error-corrected {
-    color: #0E9B7A;
-  }
-
-  .error-ignored {
-    color: #9E9E9E;
-    text-decoration: line-through;
-  }
-
-  /* Grammarly-style card */
-  .card {
-    @apply bg-white border border-neutral-200 rounded-lg;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-
-  /* Grammarly-style popover */
-  .popover {
-    @apply absolute z-50 bg-white rounded-lg border border-neutral-200 overflow-hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    animation: slideUp 0.15s ease-out;
-  }
-
-  /* Scrollbar */
-  .scrollbar-thin {
-    scrollbar-width: thin;
-    scrollbar-color: #BDBDBD transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #BDBDBD;
-    border-radius: 3px;
-  }
-
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: #9E9E9E;
-  }
-}
-
+/* shadcn animations */
 @layer utilities {
   .animate-in {
     animation-name: animate-in;
-    animation-duration: 150ms;
+    animation-duration: 200ms;
     animation-timing-function: ease-out;
     animation-fill-mode: forwards;
   }
 
+  .animate-out {
+    animation-name: animate-out;
+    animation-duration: 150ms;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
+  }
+
+  .fade-in-0 {
+    --tw-enter-opacity: 0;
+  }
+
+  .fade-out-0 {
+    --tw-exit-opacity: 0;
+  }
+
+  .zoom-in-95 {
+    --tw-enter-scale: 0.95;
+  }
+
+  .zoom-out-95 {
+    --tw-exit-scale: 0.95;
+  }
+
+  .slide-in-from-left-1\/2 {
+    --tw-enter-translate-x: -50%;
+  }
+
+  .slide-in-from-top-\[48\%\] {
+    --tw-enter-translate-y: -48%;
+  }
+
+  .slide-out-to-left-1\/2 {
+    --tw-exit-translate-x: -50%;
+  }
+
+  .slide-out-to-top-\[48\%\] {
+    --tw-exit-translate-y: -48%;
+  }
+
   @keyframes animate-in {
     from {
-      opacity: 0;
-      transform: translateY(4px);
+      opacity: var(--tw-enter-opacity, 1);
+      transform: translate3d(
+          var(--tw-enter-translate-x, 0),
+          var(--tw-enter-translate-y, 0),
+          0
+        )
+        scale3d(
+          var(--tw-enter-scale, 1),
+          var(--tw-enter-scale, 1),
+          var(--tw-enter-scale, 1)
+        );
     }
   }
 
-  @keyframes slideUp {
-    0% { opacity: 0; transform: translateY(4px); }
-    100% { opacity: 1; transform: translateY(0); }
+  @keyframes animate-out {
+    to {
+      opacity: var(--tw-exit-opacity, 1);
+      transform: translate3d(
+          var(--tw-exit-translate-x, 0),
+          var(--tw-exit-translate-y, 0),
+          0
+        )
+        scale3d(
+          var(--tw-exit-scale, 1),
+          var(--tw-exit-scale, 1),
+          var(--tw-exit-scale, 1)
+        );
+    }
+  }
+}
+
+/* Component styles */
+@layer components {
+  /* Error token base styles */
+  .error-token {
+    @apply relative inline-block cursor-pointer rounded px-0.5 mx-0.5 transition-all duration-200;
+  }
+
+  .error-token:hover {
+    @apply ring-2 ring-offset-1;
+  }
+
+  /* Flagged state - needs attention */
+  .error-token--flagged {
+    @apply bg-akura-error-100 text-akura-error-600;
+  }
+
+  .error-token--flagged:hover {
+    @apply bg-akura-error-200 ring-akura-error-500;
+  }
+
+  /* Corrected state - fixed */
+  .error-token--corrected {
+    @apply bg-akura-success-100 text-akura-success-600;
+  }
+
+  .error-token--corrected:hover {
+    @apply bg-akura-success-200 ring-akura-success-500;
+  }
+
+  /* Ignored state - teacher dismissed */
+  .error-token--ignored {
+    @apply bg-akura-ignored-50 text-akura-ignored-500 line-through decoration-akura-ignored-500;
+  }
+
+  /* Pattern type indicators */
+  .pattern-visual {
+    @apply border-l-2 border-akura-visual-500;
+  }
+
+  .pattern-phonetic {
+    @apply border-l-2 border-akura-phonetic-500;
+  }
+
+  .pattern-grammar {
+    @apply border-l-2 border-akura-grammar-500;
+  }
+
+  /* Popover styles */
+  .popover {
+    position: fixed;
+    z-index: 9999;
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25), 0 0 0 1px rgb(0 0 0 / 0.05);
+    border: 1px solid theme('colors.slate.200');
+    padding: 1rem;
+    min-width: 300px;
+    max-width: 360px;
+    animation: popoverSlideUp 0.2s ease-out;
+  }
+
+  @keyframes popoverSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') theme('colors.slate.100');
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-slate-100 rounded;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded hover:bg-slate-400;
+  }
+}
+
+/* Mobile-specific tweaks */
+@media (max-width: 640px) {
+  .sinhala-text {
+    line-height: 1.6;
+    letter-spacing: 0.01em;
   }
 }

@@ -1,7 +1,7 @@
 /**
  * Akura AI - Main Application Component
  *
- * Clean, minimal split-screen design for dyslexia correction
+ * Teacher's Cockpit - Split-screen design for dyslexia correction workflow
  */
 
 import React, { useEffect } from "react";
@@ -15,23 +15,31 @@ import ReportModal from "./components/ReportModal";
 function AppContent() {
   const { checkApiStatus, showReport } = useAnalysis();
 
+  // Check API status on mount
   useEffect(() => {
     checkApiStatus();
   }, [checkApiStatus]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col">
+      {/* Header */}
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+      {/* Main Content - Responsive Split Screen */}
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 h-full">
+          {/* Left Panel - Input */}
           <LeftPanel />
+
+          {/* Right Panel - Interactive Editor */}
           <RightPanel />
         </div>
       </main>
 
+      {/* Status Bar */}
       <StatusBar />
 
+      {/* Report Modal */}
       {showReport && <ReportModal />}
     </div>
   );

@@ -1,19 +1,20 @@
 /**
- * Akura AI - Right Panel Component
+ * Akura AI - Right Panel Component (Interactive Editor)
  *
- * Grammarly-style editor with sidebar scores
+ * Displays tokenized text with interactive error tokens.
+ * Shows analysis results with clickable correction UI.
  */
 
-import React, { useState } from "react";
+import React from "react";
 import {
   CheckCircle2,
   XCircle,
-  AlertCircle,
+  AlertTriangle,
+  Sparkles,
   Copy,
   Check,
   Cloud,
   Loader2,
-  FileText,
 } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { WORD_STATES } from "../constants";
@@ -37,18 +38,34 @@ function RightPanel() {
     isDemoMode,
   } = useAnalysis();
 
-  const [copied, setCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [saveError, setSaveError] = React.useState(null);
 
+  // Format model name for display
+  const getModelDisplayName = () => {
+    if (!modelUsed) return "";
+    if (modelUsed.includes("akura") || modelUsed.includes("llama")) {
+      return "Akura LLaMA 8B (Fine-tuned)";
+    }
+    if (modelUsed.includes("gemini")) return "Gemini";
+    return modelUsed;
+  };
+
+  // Copy final text to clipboard
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(getFinalText());
+    const finalText = getFinalText();
+    await navigator.clipboard.writeText(finalText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Save session to database
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
+
     const sessionData = {
       original_text: originalText,
       final_text: getFinalText(),
@@ -68,29 +85,31 @@ function RightPanel() {
 
     const result = await apiService.saveSession(sessionData);
     setSaving(false);
+
     if (result.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+    } else {
+      setSaveError(result.error || "Failed to save");
+      setTimeout(() => setSaveError(null), 5000);
     }
   };
 
-  // Score calculation
-  const score = totalErrors > 0 ? Math.round(((totalErrors - pendingCount) / totalErrors) * 100) : 100;
-
-  // Placeholder
+  // Render placeholder when no analysis
   if (!analysisComplete && !isAnalyzing) {
     return (
-      <Card className="flex flex-col h-full min-h-[400px]">
+      <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
         <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center max-w-sm">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-grammarly-green-light flex items-center justify-center">
-              <FileText className="w-8 h-8 text-grammarly-green" />
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+              <Sparkles className="w-10 h-10 text-indigo-500" />
             </div>
-            <h3 className="text-lg font-medium text-neutral-800 mb-2">
-              Ready to check your writing
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+              Ready to Analyze
             </h3>
-            <p className="text-sm text-neutral-500">
-              Enter Sinhala text on the left and click Analyze to find and fix errors.
+            <p className="text-sm text-slate-500 max-w-xs mx-auto">
+              Enter text in the left panel and click "Analyze" to see AI-powered
+              dyslexia pattern detection.
             </p>
           </div>
         </div>
@@ -98,139 +117,151 @@ function RightPanel() {
     );
   }
 
-  // Loading
+  // Render loading state with skeleton
   if (isAnalyzing) {
     return (
-      <Card className="flex flex-col h-full min-h-[400px]">
-        <CardHeader className="border-b border-neutral-100">
-          <Skeleton className="h-5 w-24" />
+      <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
+        <CardHeader className="border-b border-slate-100">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col items-center justify-center">
-          <Loader2 className="w-8 h-8 text-grammarly-green animate-spin mb-4" />
-          <p className="text-sm text-neutral-500">Checking your writing...</p>
+        <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            Analyzing Patterns...
+          </h3>
+          <p className="text-sm text-slate-500">
+            Our AI is detecting dyslexia patterns in the text
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4 h-full">
-      {/* Main Editor */}
-      <Card className="flex-1 flex flex-col min-h-[400px]">
-        <CardHeader className="border-b border-neutral-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CardTitle>Editor</CardTitle>
-              {pendingCount > 0 && (
-                <Badge variant="error">
-                  {pendingCount} to review
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={saved ? "success" : "outline"}
-                size="sm"
-                onClick={handleSave}
-                disabled={saving || pendingCount > 0}
-              >
-                {saving ? (
+    <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
+      {/* Panel Header */}
+      <CardHeader className="border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              <span className="sinhala-text">විශ්ලේෂණ ප්‍රතිඵල</span>
+            </CardTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Click on highlighted words to review corrections
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Save to Cloud Button */}
+            <Button
+              variant={saved ? "success" : saveError ? "destructive" : "outline"}
+              size="sm"
+              onClick={handleSave}
+              disabled={saving || pendingCount > 0}
+              title={
+                pendingCount > 0
+                  ? "Review all errors before saving"
+                  : "Save to cloud database"
+              }
+            >
+              {saving ? (
+                <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : saved ? (
+                  <span className="hidden sm:inline">Saving...</span>
+                </>
+              ) : saved ? (
+                <>
                   <Check className="w-4 h-4" />
-                ) : (
+                  <span className="hidden sm:inline">Saved!</span>
+                </>
+              ) : saveError ? (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Error</span>
+                </>
+              ) : (
+                <>
                   <Cloud className="w-4 h-4" />
-                )}
-                <span className="hidden sm:inline">{saved ? "Saved" : "Save"}</span>
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCopy}>
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span className="hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+                  <span className="hidden sm:inline">Save</span>
+                </>
+              )}
+            </Button>
 
-        <CardContent className="flex-1 overflow-y-auto p-5 scrollbar-thin">
-          <div className="text-base leading-[2] sinhala-text" dir="auto">
-            {tokens.map((token) => {
-              if (token.type === "whitespace") {
-                return <span key={token.id}>{token.displayWord}</span>;
-              }
-              if (token.type === "error") {
-                return <ErrorToken key={token.id} token={token} />;
-              }
+            {/* Copy Button */}
+            <Button variant="secondary" size="sm" onClick={handleCopy}>
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="hidden sm:inline">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span className="hidden sm:inline">Copy</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3">
+          <Badge variant="error" className="gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            <span>{totalErrors} errors</span>
+          </Badge>
+          <Badge variant="success" className="gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>{correctedCount} corrected</span>
+          </Badge>
+          <Badge variant="default" className="gap-1">
+            <XCircle className="w-3 h-3" />
+            <span>{ignoredCount} ignored</span>
+          </Badge>
+          {pendingCount > 0 && (
+            <Badge variant="warning" className="gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>{pendingCount} pending</span>
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+
+      {/* Interactive Text Area */}
+      <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="text-lg sm:text-xl leading-relaxed sinhala-text" dir="auto">
+          {tokens.map((token) => {
+            if (token.type === "whitespace") {
               return <span key={token.id}>{token.displayWord}</span>;
-            })}
-          </div>
-        </CardContent>
-      </Card>
+            }
 
-      {/* Sidebar Stats - Grammarly style */}
-      <div className="lg:w-48 space-y-4">
-        {/* Score Circle */}
-        <Card className="p-4 text-center">
-          <div className="relative w-20 h-20 mx-auto mb-3">
-            <svg className="w-20 h-20 transform -rotate-90">
-              <circle
-                cx="40"
-                cy="40"
-                r="36"
-                stroke="#EEEEEE"
-                strokeWidth="8"
-                fill="none"
-              />
-              <circle
-                cx="40"
-                cy="40"
-                r="36"
-                stroke="#15C39A"
-                strokeWidth="8"
-                fill="none"
-                strokeDasharray={`${score * 2.26} 226`}
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-2xl font-bold text-neutral-800">{score}</span>
-            </div>
-          </div>
-          <p className="text-sm font-medium text-neutral-600">
-            {score >= 80 ? "Great!" : score >= 50 ? "Good" : "Needs work"}
-          </p>
-        </Card>
+            if (token.type === "error") {
+              return <ErrorToken key={token.id} token={token} />;
+            }
 
-        {/* Stats */}
-        <Card className="p-4 space-y-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-neutral-600">
-              <AlertCircle className="w-4 h-4 text-grammarly-red" />
-              Found
-            </span>
-            <span className="font-medium text-neutral-800">{totalErrors}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-neutral-600">
-              <CheckCircle2 className="w-4 h-4 text-grammarly-green" />
-              Fixed
-            </span>
-            <span className="font-medium text-neutral-800">{correctedCount}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-2 text-neutral-600">
-              <XCircle className="w-4 h-4 text-neutral-400" />
-              Ignored
-            </span>
-            <span className="font-medium text-neutral-800">{ignoredCount}</span>
-          </div>
-        </Card>
+            // Normal word
+            return (
+              <span key={token.id} className="text-slate-800">
+                {token.displayWord}
+              </span>
+            );
+          })}
+        </div>
+      </CardContent>
 
-        {/* Processing info */}
-        <div className="text-xs text-neutral-400 text-center">
-          {processingTime?.toFixed(0)}ms
+      {/* Footer Info */}
+      <div className="px-4 sm:px-6 py-3 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 gap-1">
+          <span>Model: {getModelDisplayName()}</span>
+          <span>Processing time: {processingTime?.toFixed(0)}ms</span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 

@@ -7,7 +7,7 @@ AI-based and rule-based correction with intelligent pattern detection.
 
 import asyncio
 import time
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from loguru import logger
 
@@ -48,7 +48,7 @@ class AnalysisService:
         include_correct_words: bool = False
     ) -> AnalyzeResponse:
         """
-        Perform full analysis on Sinhala text.
+        Perform full analysis on Sinhala text using word-by-word LLM correction.
         
         Args:
             text: The Sinhala text to analyze
@@ -60,26 +60,44 @@ class AnalysisService:
         start_time = time.time()
         
         try:
-            # Step 1: Get AI correction for the full text
-            ai_corrected, ai_confidence = await self.llm.correct_text(text)
+            # Step 1: Split text into words
+            words = text.split()
             
-            # Step 2: Split into words for detailed analysis
-            original_words = text.split()
-            corrected_words = ai_corrected.split()
+            # Step 2: Process each word through LLM
+            word_results = await self.llm.correct_words_batch(words)
             
-            # Step 3: Analyze each word
-            word_analyses = await self._analyze_words(
-                original_words,
-                corrected_words,
-                ai_confidence,
-                include_correct_words
-            )
+            # Step 3: Build word analyses from results
+            word_analyses = []
+            corrected_words = []
             
-            # Step 4: Build final corrected text from analysis
-            final_corrected = self._build_corrected_text(
-                original_words,
-                word_analyses
-            )
+            for original, corrected, confidence, error_type in word_results:
+                corrected_words.append(corrected)
+                
+                if original != corrected:
+                    # This word has an error
+                    word_analyses.append(WordAnalysis(
+                        word=original,
+                        type=WordType.ERROR,
+                        dyslexia_pattern=error_type if error_type else "Unknown",
+                        suggestion=corrected,
+                        explanation=f"Detected: {error_type}" if error_type else "Dyslexia error detected",
+                        confidence=confidence,
+                        source="ai"
+                    ))
+                elif include_correct_words:
+                    # Include correct words if requested
+                    word_analyses.append(WordAnalysis(
+                        word=original,
+                        type=WordType.CORRECT,
+                        dyslexia_pattern=None,
+                        suggestion=None,
+                        explanation=None,
+                        confidence=1.0,
+                        source=None
+                    ))
+            
+            # Step 4: Build final corrected text
+            final_corrected = " ".join(corrected_words)
             
             processing_time = (time.time() - start_time) * 1000
             
@@ -89,7 +107,7 @@ class AnalysisService:
                 corrected_text=final_corrected,
                 original_text=text,
                 processing_time_ms=round(processing_time, 2),
-                model_used=self.settings.ollama_model
+                model_used=self.llm.get_model_name()
             )
             
         except Exception as e:
@@ -166,6 +184,61 @@ class AnalysisService:
             elif include_correct:
                 analyses.append(WordAnalysis(
                     word=original,
+                    type=WordType.CORRECT,
+                    dyslexia_pattern=None,
+                    suggestion=None,
+                    explanation=None,
+                    confidence=1.0,
+                    source=None
+                ))
+        
+        return analyses
+    
+    def _build_word_analyses_from_model(
+        self,
+        original_text: str,
+        corrected_text: str,
+        model_analysis: List[Dict],
+        include_correct: bool
+    ) -> List[WordAnalysis]:
+        """
+        Build WordAnalysis list from model's analysis output.
+        
+        Args:
+            original_text: Original input text
+            corrected_text: Corrected text from model
+            model_analysis: Analysis list from model
+            include_correct: Whether to include correct words
+            
+        Returns:
+            List of WordAnalysis objects
+        """
+        analyses = []
+        original_words = original_text.split()
+        
+        # Create a set of words that have errors
+        error_words = {item.get("word", "") for item in model_analysis}
+        
+        for word in original_words:
+            # Check if this word has an error
+            error_item = next(
+                (item for item in model_analysis if item.get("word") == word),
+                None
+            )
+            
+            if error_item:
+                analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=error_item.get("type", "Unknown"),
+                    suggestion=error_item.get("suggestion", word),
+                    explanation=f"Detected: {error_item.get('type', 'Unknown')}",
+                    confidence=0.9,
+                    source="ai"
+                ))
+            elif include_correct:
+                analyses.append(WordAnalysis(
+                    word=word,
                     type=WordType.CORRECT,
                     dyslexia_pattern=None,
                     suggestion=None,
