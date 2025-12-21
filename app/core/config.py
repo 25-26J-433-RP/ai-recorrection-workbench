@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # Ollama Configuration
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.2:1b"
+    ollama_model: str = "hf.co/hasinduOnline/akura_llama_8b_dyslexia:Q4_K_M"
     ollama_timeout: int = 120
     
     # Model Configuration
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     
     # LLM Provider: "ollama" or "gemini"
-    llm_provider: str = "gemini"  # Default to Gemini until local model is fine-tuned
+    llm_provider: str = "ollama"  # Using fine-tuned Ollama model for text correction
     
     # Database Configuration (Supabase PostgreSQL)
     database_url: str = ""
