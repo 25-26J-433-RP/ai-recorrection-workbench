@@ -1,40 +1,36 @@
 /**
  * Akura AI - Header Component
  *
- * Child-friendly header with playful styling and educational theme
+ * Clean, minimal header with simple status indicators
  */
 
 import React, { useState } from "react";
-import { BookOpen, FileText, RefreshCw, Menu, X, Sparkles, Star } from "lucide-react";
+import { Brain, FileText, RefreshCw, Menu, X } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { Button, Badge } from "./ui";
 
 function Header() {
-  const { toggleReport, reset, analysisComplete, isDemoMode, apiStatus } =
-    useAnalysis();
+  const { toggleReport, reset, analysisComplete, apiStatus } = useAnalysis();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-white/90 backdrop-blur-md shadow-lg border-b-2 border-primary-200 sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-3">
+    <header className="bg-white border-b border-neutral-200">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
-          {/* Logo & Title - Child-friendly with emoji */}
+          {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 animate-bounce-soft">
-              <BookOpen className="w-7 h-7 text-white" />
+            <div className="w-8 h-8 rounded-md bg-neutral-900 flex items-center justify-center">
+              <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-primary-700 flex items-center gap-2">
-                Akura AI
-                <Sparkles className="w-5 h-5 text-accent-yellow animate-pulse" />
-              </h1>
-              <p className="text-xs sm:text-sm text-primary-500 hidden sm:block font-medium">
-                ✨ Your Smart Learning Helper ✨
+              <h1 className="text-lg font-semibold text-neutral-900">Akura AI</h1>
+              <p className="text-xs text-neutral-500 hidden sm:block">
+                Dyslexia Correction Engine
               </p>
             </div>
           </div>
 
-          {/* Desktop: Status Indicators */}
+          {/* Status */}
           <div className="hidden md:flex items-center gap-3">
             <Badge
               variant={
@@ -46,93 +42,58 @@ function Header() {
               }
             >
               <span
-                className={`w-2.5 h-2.5 rounded-full ${
+                className={`w-1.5 h-1.5 rounded-full ${
                   apiStatus === "online"
-                    ? "bg-green-500 animate-pulse"
+                    ? "bg-green-500"
                     : apiStatus === "offline"
                     ? "bg-amber-500"
-                    : "bg-gray-400"
+                    : "bg-neutral-400"
                 }`}
               />
               {apiStatus === "online"
-                ? "🟢 Ready to Help!"
+                ? "Online"
                 : apiStatus === "offline"
-                ? "🟡 Demo Mode"
-                : "⏳ Connecting..."}
+                ? "Demo"
+                : "Connecting"}
             </Badge>
-            {apiStatus === "online" && (
-              <Badge variant="star">
-                <Star className="w-4 h-4" />
-                Akura AI Model
-              </Badge>
-            )}
           </div>
 
-          {/* Desktop: Actions */}
+          {/* Actions */}
           <div className="hidden md:flex items-center gap-2">
             {analysisComplete && (
               <Button variant="outline" size="sm" onClick={toggleReport}>
                 <FileText className="w-4 h-4" />
-                <span>📊 Report</span>
+                Report
               </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={reset} title="Start over">
+            <Button variant="ghost" size="sm" onClick={reset}>
               <RefreshCw className="w-4 h-4" />
-              <span>🔄 New</span>
+              Reset
             </Button>
           </div>
 
-          {/* Mobile: Hamburger Menu */}
+          {/* Mobile menu */}
           <button
-            className="md:hidden p-2 rounded-xl bg-primary-100 hover:bg-primary-200 transition-colors"
+            className="md:hidden p-2 text-neutral-600 hover:bg-neutral-100 rounded-md"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            {mobileMenuOpen ? (
-              <X className="w-6 h-6 text-primary-600" />
-            ) : (
-              <Menu className="w-6 h-6 text-primary-600" />
-            )}
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Mobile Menu Dropdown */}
+        {/* Mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-2 border-t-2 border-primary-100 pt-4 space-y-3 animate-fade-in">
-            {/* Mobile Status */}
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={
-                  apiStatus === "online"
-                    ? "online"
-                    : apiStatus === "offline"
-                    ? "offline"
-                    : "connecting"
-                }
-              >
+          <div className="md:hidden mt-3 pt-3 border-t border-neutral-100 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge variant={apiStatus === "online" ? "online" : "offline"}>
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    apiStatus === "online"
-                      ? "bg-green-500 animate-pulse"
-                      : apiStatus === "offline"
-                      ? "bg-amber-500"
-                      : "bg-gray-400"
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    apiStatus === "online" ? "bg-green-500" : "bg-amber-500"
                   }`}
                 />
-                {apiStatus === "online"
-                  ? "🟢 Ready!"
-                  : apiStatus === "offline"
-                  ? "🟡 Demo"
-                  : "⏳ Wait..."}
+                {apiStatus === "online" ? "Online" : "Demo"}
               </Badge>
-              {apiStatus === "online" && (
-                <Badge variant="star">
-                  <Star className="w-3 h-3" />
-                  AI Active
-                </Badge>
-              )}
             </div>
-
-            {/* Mobile Actions */}
             <div className="flex gap-2">
               {analysisComplete && (
                 <Button
@@ -145,7 +106,7 @@ function Header() {
                   }}
                 >
                   <FileText className="w-4 h-4" />
-                  <span>📊 Report</span>
+                  Report
                 </Button>
               )}
               <Button
@@ -158,7 +119,7 @@ function Header() {
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
-                <span>🔄 New</span>
+                Reset
               </Button>
             </div>
           </div>
