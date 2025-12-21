@@ -234,6 +234,50 @@ class ApiService {
   isDemoMode() {
     return this.demoMode;
   }
+
+  /**
+   * Save session to database
+   */
+  async saveSession(sessionData) {
+    try {
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/v1/sessions`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sessionData),
+        }
+      );
+
+      if (response.ok) {
+        return await response.json();
+      }
+      throw new Error("Failed to save session");
+    } catch (error) {
+      console.error("Save session failed:", error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get all saved sessions from database
+   */
+  async getSessions(limit = 50, offset = 0) {
+    try {
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/v1/sessions?limit=${limit}&offset=${offset}`,
+        { method: "GET" }
+      );
+
+      if (response.ok) {
+        return await response.json();
+      }
+      throw new Error("Failed to get sessions");
+    } catch (error) {
+      console.error("Get sessions failed:", error.message);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 // Export singleton instance

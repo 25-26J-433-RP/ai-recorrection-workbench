@@ -13,10 +13,14 @@ import {
   Sparkles,
   Copy,
   Check,
+  Save,
+  Cloud,
+  Loader2,
 } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { WORD_STATES } from "../constants";
 import ErrorToken from "./ErrorToken";
+import apiService from "../services/api";
 
 function RightPanel() {
   const {
@@ -30,9 +34,14 @@ function RightPanel() {
     processingTime,
     modelUsed,
     getFinalText,
+    originalText,
+    isDemoMode,
   } = useAnalysis();
 
   const [copied, setCopied] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [saveError, setSaveError] = React.useState(null);
 
   // Copy final text to clipboard
   const handleCopy = async () => {
@@ -40,6 +49,40 @@ function RightPanel() {
     await navigator.clipboard.writeText(finalText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Save session to database
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    
+    const sessionData = {
+      original_text: originalText,
+      final_text: getFinalText(),
+      model_used: modelUsed,
+      is_demo_mode: isDemoMode,
+      actions: tokens
+        .filter((t) => t.type === "error" && t.state !== WORD_STATES.FLAGGED)
+        .map((t) => ({
+          original_word: t.originalWord,
+          suggestion: t.correctedWord,
+          final_word: t.displayWord,
+          action: t.state === WORD_STATES.CORRECTED ? "accept" : "reject",
+          pattern: t.pattern,
+          confidence: t.confidence,
+        })),
+    };
+
+    const result = await apiService.saveSession(sessionData);
+    setSaving(false);
+    
+    if (result.success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } else {
+      setSaveError(result.error || "Failed to save");
+      setTimeout(() => setSaveError(null), 5000);
+    }
   };
 
   // Render placeholder when no analysis
@@ -100,23 +143,62 @@ function RightPanel() {
             </p>
           </div>
 
-          {/* Copy Button */}
-          <button
-            onClick={handleCopy}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-green-500" />
-                <span>Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy Result</span>
-              </>
-            )}
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Save to Cloud Button */}
+            <button
+              onClick={handleSave}
+              disabled={saving || pendingCount > 0}
+              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                saved
+                  ? "bg-green-100 text-green-700"
+                  : saveError
+                  ? "bg-red-100 text-red-700"
+                  : "bg-indigo-100 hover:bg-indigo-200 text-indigo-700"
+              } ${(saving || pendingCount > 0) ? "opacity-50 cursor-not-allowed" : ""}`}
+              title={pendingCount > 0 ? "Review all errors before saving" : "Save to cloud database"}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : saved ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Saved!</span>
+                </>
+              ) : saveError ? (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  <span>Error</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-4 h-4" />
+                  <span>Save to Cloud</span>
+                </>
+              )}
+            </button>
+
+            {/* Copy Button */}
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span>Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>Copy Result</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Stats Bar */}

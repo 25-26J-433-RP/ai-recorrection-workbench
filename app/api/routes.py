@@ -4,10 +4,12 @@ Akura AI - API Routes
 This module defines all API endpoints for the Akura AI backend.
 """
 
-from typing import List
+from typing import List, Optional
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends
 from loguru import logger
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.schemas import (
@@ -479,3 +481,192 @@ async def ocr_status() -> dict:
         "status": status_msg,
         "model": settings.gemini_model
     }
+
+
+# =============================================================================
+# DATABASE / SESSION ENDPOINTS
+# =============================================================================
+
+# Import database dependencies
+try:
+    from app.core.database import get_db, init_db
+    from app.services.database_service import database_service
+    DB_AVAILABLE = database_service.is_configured
+except ImportError:
+    DB_AVAILABLE = False
+    get_db = None
+
+
+@router.post(
+    "/sessions",
+    summary="Save Correction Session",
+    description="Save a complete correction session to the database",
+    tags=["Sessions"]
+)
+async def save_session(session_data: dict, db: Session = Depends(get_db)) -> dict:
+    """
+    Save a correction session to the database.
+    
+    Args:
+        session_data: Dict containing original_text, final_text, model_used, actions
+        
+    Returns:
+        Dict with saved session details
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        session = database_service.save_session(
+            db=db,
+            original_text=session_data.get("original_text", ""),
+            final_text=session_data.get("final_text"),
+            model_used=session_data.get("model_used"),
+            is_demo_mode=session_data.get("is_demo_mode", False),
+            actions=session_data.get("actions", [])
+        )
+        
+        logger.info(f"Saved session {session.id} to database")
+        
+        return {
+            "success": True,
+            "session_id": str(session.id),
+            "message": "Session saved to database"
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to save session: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/sessions",
+    summary="List Saved Sessions",
+    description="Get all saved correction sessions",
+    tags=["Sessions"]
+)
+async def list_sessions(
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    List all saved correction sessions.
+    
+    Args:
+        limit: Maximum number of sessions to return
+        offset: Number of sessions to skip
+        
+    Returns:
+        Dict with list of sessions
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        sessions = database_service.get_all_sessions(db, limit=limit, offset=offset)
+        total = database_service.get_session_count(db)
+        
+        return {
+            "success": True,
+            "sessions": [s.to_dict() for s in sessions],
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to list sessions: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/sessions/{session_id}",
+    summary="Get Session Details",
+    description="Get details of a specific correction session",
+    tags=["Sessions"]
+)
+async def get_session(session_id: UUID, db: Session = Depends(get_db)) -> dict:
+    """
+    Get a specific session by ID.
+    
+    Args:
+        session_id: UUID of the session
+        
+    Returns:
+        Dict with session details
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        session = database_service.get_session(db, session_id)
+        
+        if not session:
+            return {
+                "success": False,
+                "error": "Session not found"
+            }
+        
+        return {
+            "success": True,
+            "session": session.to_dict()
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get session: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/sessions/export/training",
+    summary="Export Training Data",
+    description="Export all sessions as training data for fine-tuning",
+    tags=["Sessions"]
+)
+async def export_training_data(db: Session = Depends(get_db)) -> dict:
+    """
+    Export all sessions in training format.
+    
+    Returns:
+        Dict with training examples
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        training_data = database_service.export_for_training(db)
+        
+        return {
+            "success": True,
+            "total_examples": len(training_data),
+            "data": training_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to export training data: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
