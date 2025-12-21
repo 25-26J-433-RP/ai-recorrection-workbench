@@ -4,22 +4,22 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grammarly-green focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "bg-neutral-900 text-white hover:bg-neutral-800",
+          "bg-grammarly-green text-white hover:bg-grammarly-green-dark",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700",
+          "bg-grammarly-red text-white hover:bg-red-600",
         outline:
           "border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50",
         secondary:
           "bg-neutral-100 text-neutral-700 hover:bg-neutral-200",
         ghost: "text-neutral-600 hover:bg-neutral-100",
-        link: "text-neutral-900 underline-offset-4 hover:underline",
+        link: "text-grammarly-green underline-offset-4 hover:underline",
         success:
-          "bg-green-600 text-white hover:bg-green-700",
+          "bg-grammarly-green text-white hover:bg-grammarly-green-dark",
       },
       size: {
         default: "h-9 px-4 py-2",

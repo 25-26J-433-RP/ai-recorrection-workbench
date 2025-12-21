@@ -6,7 +6,7 @@
 
 @layer base {
   * {
-    border-color: #e5e5e5;
+    border-color: #EEEEEE;
   }
 
   html {
@@ -14,10 +14,9 @@
   }
 
   body {
-    @apply bg-white text-neutral-900 font-sans;
+    @apply bg-white text-neutral-800 font-sans;
   }
 
-  /* Sinhala text styling */
   .sinhala-text {
     @apply font-sinhala;
     font-feature-settings: "kern" 1;
@@ -25,70 +24,80 @@
   }
 }
 
-/* Minimal component styles */
 @layer components {
-  /* Error token - clean and simple */
-  .error-token {
-    @apply inline-block cursor-pointer rounded px-1 transition-colors duration-150;
+  /* Grammarly-style error underlines */
+  .error-underline {
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
   }
 
-  .error-token:hover {
-    @apply ring-1 ring-offset-1;
+  .error-underline::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    border-radius: 1px;
   }
 
-  .error-token--flagged {
-    background-color: #fef2f2;
-    color: #dc2626;
+  /* Error types with colored underlines */
+  .error-underline--spelling::after {
+    background-color: #E94949;
   }
 
-  .error-token--flagged:hover {
-    background-color: #fee2e2;
-    --tw-ring-color: #ef4444;
+  .error-underline--spelling:hover {
+    background-color: #FDF2F2;
   }
 
-  .error-token--corrected {
-    background-color: #f0fdf4;
-    color: #16a34a;
+  .error-underline--grammar::after {
+    background-color: #F5A623;
   }
 
-  .error-token--corrected:hover {
-    background-color: #dcfce7;
-    --tw-ring-color: #22c55e;
+  .error-underline--grammar:hover {
+    background-color: #FEF8EC;
   }
 
-  .error-token--ignored {
-    background-color: #f9fafb;
-    color: #9ca3af;
+  .error-underline--suggestion::after {
+    background-color: #5D9CEC;
+  }
+
+  .error-underline--suggestion:hover {
+    background-color: #EEF5FF;
+  }
+
+  /* Corrected state */
+  .error-corrected {
+    color: #0E9B7A;
+  }
+
+  .error-ignored {
+    color: #9E9E9E;
     text-decoration: line-through;
   }
 
-  /* Pattern indicators */
-  .pattern-visual {
-    border-left: 2px solid #3b82f6;
+  /* Grammarly-style card */
+  .card {
+    @apply bg-white border border-neutral-200 rounded-lg;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
-  .pattern-phonetic {
-    border-left: 2px solid #f59e0b;
-  }
-
-  .pattern-grammar {
-    border-left: 2px solid #a855f7;
-  }
-
-  /* Clean popover */
+  /* Grammarly-style popover */
   .popover {
-    @apply absolute z-50 bg-white rounded-lg shadow-lg border p-4 min-w-[280px];
+    @apply absolute z-50 bg-white rounded-lg border border-neutral-200 overflow-hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     animation: slideUp 0.15s ease-out;
   }
 
-  /* Scrollbar - minimal */
+  /* Scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #d4d4d4 transparent;
+    scrollbar-color: #BDBDBD transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    @apply w-1.5;
+    width: 6px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -96,16 +105,15 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #d4d4d4;
-    border-radius: 9999px;
+    background-color: #BDBDBD;
+    border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: #a3a3a3;
+    background-color: #9E9E9E;
   }
 }
 
-/* shadcn animations */
 @layer utilities {
   .animate-in {
     animation-name: animate-in;
@@ -114,30 +122,15 @@
     animation-fill-mode: forwards;
   }
 
-  .fade-in-0 {
-    --tw-enter-opacity: 0;
-  }
-
-  .slide-in-from-top-2 {
-    --tw-enter-translate-y: -0.5rem;
-  }
-
   @keyframes animate-in {
     from {
-      opacity: var(--tw-enter-opacity, 1);
-      transform: translateY(var(--tw-enter-translate-y, 0));
+      opacity: 0;
+      transform: translateY(4px);
     }
   }
 
   @keyframes slideUp {
     0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
-  }
-}
-
-/* Mobile tweaks */
-@media (max-width: 640px) {
-  .sinhala-text {
-    line-height: 1.6;
   }
 }

@@ -1,61 +1,61 @@
 /**
  * Akura AI - Header Component
  *
- * Clean, minimal header with simple status indicators
+ * Grammarly-inspired clean header with correct model name
  */
 
 import React, { useState } from "react";
-import { Brain, FileText, RefreshCw, Menu, X } from "lucide-react";
+import { Brain, FileText, RefreshCw, Menu, X, Circle } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { Button, Badge } from "./ui";
 
 function Header() {
-  const { toggleReport, reset, analysisComplete, apiStatus } = useAnalysis();
+  const { toggleReport, reset, analysisComplete, apiStatus, modelUsed } = useAnalysis();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Get clean model name
+  const getModelDisplayName = () => {
+    if (!modelUsed) return null;
+    if (modelUsed.includes("akura") || modelUsed.includes("llama")) {
+      return "Akura LLaMA 8B";
+    }
+    if (modelUsed === "demo-mode") return "Demo Mode";
+    if (modelUsed.includes("gemini")) return "Gemini";
+    return modelUsed;
+  };
 
   return (
     <header className="bg-white border-b border-neutral-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-md bg-neutral-900 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-grammarly-green flex items-center justify-center">
               <Brain className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-neutral-900">Akura AI</h1>
+              <h1 className="text-lg font-semibold text-neutral-900">Akura</h1>
               <p className="text-xs text-neutral-500 hidden sm:block">
-                Dyslexia Correction Engine
+                Sinhala Writing Assistant
               </p>
             </div>
           </div>
 
-          {/* Status */}
+          {/* Center - Model & Status */}
           <div className="hidden md:flex items-center gap-3">
-            <Badge
-              variant={
-                apiStatus === "online"
-                  ? "online"
-                  : apiStatus === "offline"
-                  ? "offline"
-                  : "connecting"
-              }
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  apiStatus === "online"
-                    ? "bg-green-500"
-                    : apiStatus === "offline"
-                    ? "bg-amber-500"
-                    : "bg-neutral-400"
+            <Badge variant={apiStatus === "online" ? "online" : "offline"}>
+              <Circle
+                className={`w-2 h-2 ${
+                  apiStatus === "online" ? "fill-grammarly-green text-grammarly-green" : "fill-grammarly-orange text-grammarly-orange"
                 }`}
               />
-              {apiStatus === "online"
-                ? "Online"
-                : apiStatus === "offline"
-                ? "Demo"
-                : "Connecting"}
+              {apiStatus === "online" ? "Connected" : "Demo"}
             </Badge>
+            {getModelDisplayName() && (
+              <Badge variant="default">
+                {getModelDisplayName()}
+              </Badge>
+            )}
           </div>
 
           {/* Actions */}
@@ -68,11 +68,11 @@ function Header() {
             )}
             <Button variant="ghost" size="sm" onClick={reset}>
               <RefreshCw className="w-4 h-4" />
-              Reset
+              New
             </Button>
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile */}
           <button
             className="md:hidden p-2 text-neutral-600 hover:bg-neutral-100 rounded-md"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -83,16 +83,19 @@ function Header() {
 
         {/* Mobile dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-neutral-100 space-y-2">
-            <div className="flex items-center gap-2">
+          <div className="md:hidden mt-3 pt-3 border-t border-neutral-100 space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={apiStatus === "online" ? "online" : "offline"}>
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    apiStatus === "online" ? "bg-green-500" : "bg-amber-500"
+                <Circle
+                  className={`w-2 h-2 ${
+                    apiStatus === "online" ? "fill-grammarly-green text-grammarly-green" : "fill-grammarly-orange text-grammarly-orange"
                   }`}
                 />
-                {apiStatus === "online" ? "Online" : "Demo"}
+                {apiStatus === "online" ? "Connected" : "Demo"}
               </Badge>
+              {getModelDisplayName() && (
+                <Badge variant="default">{getModelDisplayName()}</Badge>
+              )}
             </div>
             <div className="flex gap-2">
               {analysisComplete && (
@@ -119,7 +122,7 @@ function Header() {
                 }}
               >
                 <RefreshCw className="w-4 h-4" />
-                Reset
+                New
               </Button>
             </div>
           </div>

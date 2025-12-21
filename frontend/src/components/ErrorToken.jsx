@@ -1,11 +1,11 @@
 /**
  * Akura AI - Error Token Component
  *
- * Clean, minimal interactive error word with popover
+ * Grammarly-style underlined error with clean popover
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { Check, X, Edit3, ChevronDown } from "lucide-react";
+import { Check, X, Edit3 } from "lucide-react";
 import { useAnalysis } from "../context/AnalysisContext";
 import { WORD_STATES } from "../constants";
 
@@ -24,16 +24,20 @@ function ErrorToken({ token }) {
   const popoverRef = useRef(null);
   const inputRef = useRef(null);
 
-  const getTokenClasses = () => {
-    const base = "inline-block cursor-pointer rounded px-1 py-0.5 transition-colors text-sm";
-    switch (token.state) {
-      case WORD_STATES.CORRECTED:
-        return `${base} bg-green-50 text-green-700`;
-      case WORD_STATES.IGNORED:
-        return `${base} bg-neutral-100 text-neutral-400 line-through`;
-      default:
-        return `${base} bg-red-50 text-red-700 hover:bg-red-100`;
-    }
+  // Get pattern type for underline color
+  const getPatternType = () => {
+    const pattern = token.pattern?.toLowerCase() || "";
+    if (pattern.includes("visual") || pattern.includes("scrambl")) return "spelling";
+    if (pattern.includes("phonetic") || pattern.includes("dental")) return "spelling";
+    if (pattern.includes("grammar") || pattern.includes("spoken")) return "grammar";
+    return "spelling";
+  };
+
+  const getUnderlineClass = () => {
+    if (token.state === WORD_STATES.CORRECTED) return "error-corrected";
+    if (token.state === WORD_STATES.IGNORED) return "error-ignored";
+    const type = getPatternType();
+    return `error-underline error-underline--${type}`;
   };
 
   useEffect(() => {
@@ -90,46 +94,33 @@ function ErrorToken({ token }) {
       <span
         ref={tokenRef}
         onClick={handleClick}
-        className={getTokenClasses()}
+        className={`${getUnderlineClass()} px-0.5 cursor-pointer`}
       >
         {token.displayWord}
-        {token.state === WORD_STATES.FLAGGED && (
-          <ChevronDown className="inline w-3 h-3 ml-0.5 opacity-50" />
-        )}
       </span>
 
       {isOpen && token.state === WORD_STATES.FLAGGED && (
         <div
           ref={popoverRef}
-          className="absolute z-50 top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-neutral-200 overflow-hidden animate-in fade-in-0 slide-in-from-top-2"
+          className="popover absolute z-50 top-full left-0 mt-2 w-72"
         >
-          {/* Header */}
-          <div className="px-3 py-2 bg-neutral-50 border-b border-neutral-100">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-neutral-600">
-                Suggested correction
-              </span>
-              <span className="text-xs text-neutral-400">
-                {Math.round((token.confidence || 0.85) * 100)}%
-              </span>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="p-3">
+          {/* Suggestion Card */}
+          <div className="p-4">
             {/* Original → Suggested */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="px-2 py-1 bg-red-50 text-red-700 rounded text-sm sinhala-text">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-grammarly-red line-through text-sm sinhala-text">
                 {token.originalWord}
               </span>
               <span className="text-neutral-300">→</span>
-              <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-sm sinhala-text">
+              <span className="text-grammarly-green font-medium sinhala-text">
                 {token.correctedWord}
               </span>
             </div>
 
-            {/* Pattern */}
-            <p className="text-xs text-neutral-500 mb-3">{token.pattern}</p>
+            {/* Pattern info */}
+            <p className="text-xs text-neutral-500 mb-4 leading-relaxed">
+              {token.pattern}
+            </p>
 
             {/* Edit mode */}
             {isEditing ? (
@@ -139,19 +130,19 @@ function ErrorToken({ token }) {
                   type="text"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  className="w-full px-2 py-1.5 border border-neutral-300 rounded text-sm sinhala-text focus:outline-none focus:ring-1 focus:ring-neutral-400 mb-2"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-md text-sm sinhala-text focus:outline-none focus:ring-2 focus:ring-grammarly-green focus:border-grammarly-green mb-3"
                 />
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="flex-1 py-1.5 bg-neutral-900 text-white rounded text-xs font-medium"
+                    className="flex-1 py-2 bg-grammarly-green text-white rounded-md text-sm font-medium hover:bg-grammarly-green-dark transition-colors"
                   >
-                    Save
+                    Apply
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsEditing(false)}
-                    className="flex-1 py-1.5 bg-neutral-100 text-neutral-600 rounded text-xs font-medium"
+                    className="flex-1 py-2 bg-neutral-100 text-neutral-600 rounded-md text-sm font-medium hover:bg-neutral-200 transition-colors"
                   >
                     Cancel
                   </button>
@@ -161,26 +152,37 @@ function ErrorToken({ token }) {
               <div className="flex gap-2">
                 <button
                   onClick={handleAccept}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-grammarly-green text-white rounded-md text-sm font-medium hover:bg-grammarly-green-dark transition-colors"
                 >
-                  <Check className="w-3 h-3" />
+                  <Check className="w-4 h-4" />
                   Accept
                 </button>
                 <button
                   onClick={handleReject}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-neutral-100 text-neutral-600 rounded text-xs font-medium hover:bg-neutral-200 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-neutral-100 text-neutral-600 rounded-md text-sm font-medium hover:bg-neutral-200 transition-colors"
                 >
-                  <X className="w-3 h-3" />
-                  Ignore
+                  <X className="w-4 h-4" />
+                  Dismiss
                 </button>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-2 py-1.5 bg-neutral-100 text-neutral-600 rounded hover:bg-neutral-200 transition-colors"
+                  className="px-3 py-2 bg-neutral-100 text-neutral-600 rounded-md hover:bg-neutral-200 transition-colors"
+                  title="Edit"
                 >
-                  <Edit3 className="w-3 h-3" />
+                  <Edit3 className="w-4 h-4" />
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Confidence footer */}
+          <div className="px-4 py-2 bg-neutral-50 border-t border-neutral-100">
+            <div className="flex items-center justify-between text-xs text-neutral-400">
+              <span>Confidence</span>
+              <span className="font-medium text-neutral-600">
+                {Math.round((token.confidence || 0.85) * 100)}%
+              </span>
+            </div>
           </div>
         </div>
       )}
