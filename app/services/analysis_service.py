@@ -48,7 +48,10 @@ class AnalysisService:
         include_correct_words: bool = False
     ) -> AnalyzeResponse:
         """
-        Perform full analysis on Sinhala text using word-by-word LLM correction.
+        Perform full analysis on Sinhala text using the fine-tuned LLM.
+        
+        Model Input: Full sentence (e.g., "මම ගෙරද යනව")
+        Model Output: JSON {"correction": "...", "analysis": [{"word": "...", "type": "...", "suggestion": "..."}]}
         
         Args:
             text: The Sinhala text to analyze
@@ -60,51 +63,50 @@ class AnalysisService:
         start_time = time.time()
         
         try:
-            # Step 1: Split text into words
-            words = text.split()
+            # Send full sentence to LLM and get JSON response
+            corrected_text, confidence, model_analysis = await self.llm.correct_text_with_analysis(text)
             
-            # Step 2: Process each word through LLM
-            word_results = await self.llm.correct_words_batch(words)
-            
-            # Step 3: Build word analyses from results
+            # Build word analyses from model's analysis array
             word_analyses = []
-            corrected_words = []
+            original_words = text.split()
             
-            for original, corrected, confidence, error_type in word_results:
-                corrected_words.append(corrected)
+            # Process model's analysis (errors only)
+            for error_item in model_analysis:
+                word = error_item.get("word", "")
+                error_type = error_item.get("type", "Unknown")
+                suggestion = error_item.get("suggestion", word)
                 
-                if original != corrected:
-                    # This word has an error
-                    word_analyses.append(WordAnalysis(
-                        word=original,
-                        type=WordType.ERROR,
-                        dyslexia_pattern=error_type if error_type else "Unknown",
-                        suggestion=corrected,
-                        explanation=f"Detected: {error_type}" if error_type else "Dyslexia error detected",
-                        confidence=confidence,
-                        source="ai"
-                    ))
-                elif include_correct_words:
-                    # Include correct words if requested
-                    word_analyses.append(WordAnalysis(
-                        word=original,
-                        type=WordType.CORRECT,
-                        dyslexia_pattern=None,
-                        suggestion=None,
-                        explanation=None,
-                        confidence=1.0,
-                        source=None
-                    ))
+                word_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=error_type,
+                    suggestion=suggestion,
+                    explanation=f"Detected: {error_type}",
+                    confidence=confidence,
+                    source="ai"
+                ))
             
-            # Step 4: Build final corrected text
-            final_corrected = " ".join(corrected_words)
+            # Add correct words if requested
+            if include_correct_words:
+                error_words = {item.get("word", "") for item in model_analysis}
+                for word in original_words:
+                    if word not in error_words:
+                        word_analyses.append(WordAnalysis(
+                            word=word,
+                            type=WordType.CORRECT,
+                            dyslexia_pattern=None,
+                            suggestion=None,
+                            explanation=None,
+                            confidence=1.0,
+                            source=None
+                        ))
             
             processing_time = (time.time() - start_time) * 1000
             
             return AnalyzeResponse(
                 success=True,
                 data=word_analyses,
-                corrected_text=final_corrected,
+                corrected_text=corrected_text,
                 original_text=text,
                 processing_time_ms=round(processing_time, 2),
                 model_used=self.llm.get_model_name()

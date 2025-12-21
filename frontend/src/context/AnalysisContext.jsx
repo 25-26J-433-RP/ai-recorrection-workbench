@@ -77,17 +77,22 @@ const ACTIONS = {
 const generateId = () =>
   `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+// Helper: Strip punctuation from word for comparison
+function stripPunctuation(word) {
+  return word.replace(/[.,!?;:'"()[\]{}]/g, '');
+}
+
 // Helper: Tokenize text and merge with API results
 function tokenizeWithResults(text, apiErrors) {
   const words = text.split(/(\s+)/); // Keep whitespace
   const errorMap = new Map();
 
-  // Build error lookup
+  // Build error lookup - use stripped version as key
   apiErrors.forEach((err) => {
-    errorMap.set(err.word, err);
+    const strippedWord = stripPunctuation(err.word);
+    errorMap.set(strippedWord, err);
   });
 
-  let errorIndex = 0;
   return words.map((word, index) => {
     // Skip whitespace tokens
     if (/^\s+$/.test(word)) {
@@ -100,11 +105,17 @@ function tokenizeWithResults(text, apiErrors) {
       };
     }
 
-    // Check if this word has an error
-    const error = errorMap.get(word);
+    // Check if this word has an error (strip punctuation for comparison)
+    const strippedWord = stripPunctuation(word);
+    const error = errorMap.get(strippedWord);
 
     if (error) {
-      errorMap.delete(word); // Use each error only once
+      errorMap.delete(strippedWord); // Use each error only once
+      
+      // Preserve punctuation in the corrected word
+      const punctuation = word.replace(strippedWord, '');
+      const correctedWithPunctuation = error.suggestion + punctuation.replace(strippedWord, '');
+      
       return {
         id: generateId(),
         type: "error",

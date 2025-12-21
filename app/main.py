@@ -112,10 +112,10 @@ word-by-word analysis with corrections and explanations.
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add CORS middleware - allow all localhost origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=["*"],  # Allow all origins during development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

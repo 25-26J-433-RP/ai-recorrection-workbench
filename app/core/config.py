@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     log_format: str = "json"
     
     # CORS Configuration
-    allowed_origins: str = "http://localhost:3000,http://localhost:8080"
+    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:8080"
     
     # Rate Limiting
     rate_limit_requests: int = 100
