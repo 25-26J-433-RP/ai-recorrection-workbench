@@ -20,6 +20,7 @@ import {
 import { useAnalysis } from "../context/AnalysisContext";
 import { WORD_STATES } from "../constants";
 import ErrorToken from "./ErrorToken";
+import { Button, Card, CardHeader, CardTitle, CardContent, Badge, Skeleton } from "./ui";
 import apiService from "../services/api";
 
 function RightPanel() {
@@ -43,6 +44,17 @@ function RightPanel() {
   const [saved, setSaved] = React.useState(false);
   const [saveError, setSaveError] = React.useState(null);
 
+  // Format model name for display
+  const getModelDisplayName = () => {
+    if (!modelUsed) return "";
+    if (modelUsed.includes("akura") || modelUsed.includes("llama")) {
+      return "Akura LLaMA 8B (Fine-tuned)";
+    }
+    if (modelUsed === "demo-mode") return "Demo Mode";
+    if (modelUsed.includes("gemini")) return "Gemini";
+    return modelUsed;
+  };
+
   // Copy final text to clipboard
   const handleCopy = async () => {
     const finalText = getFinalText();
@@ -55,7 +67,7 @@ function RightPanel() {
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
-    
+
     const sessionData = {
       original_text: originalText,
       final_text: getFinalText(),
@@ -75,7 +87,7 @@ function RightPanel() {
 
     const result = await apiService.saveSession(sessionData);
     setSaving(false);
-    
+
     if (result.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -88,7 +100,7 @@ function RightPanel() {
   // Render placeholder when no analysis
   if (!analysisComplete && !isAnalyzing) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
+      <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
@@ -103,41 +115,43 @@ function RightPanel() {
             </p>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
-  // Render loading state
+  // Render loading state with skeleton
   if (isAnalyzing) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
-        <div className="flex-1 flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
-              Analyzing Patterns...
-            </h3>
-            <p className="text-sm text-slate-500">
-              Our AI is detecting dyslexia patterns in the text
-            </p>
+      <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
+        <CardHeader className="border-b border-slate-100">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-64 mt-2" />
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        </div>
-      </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            Analyzing Patterns...
+          </h3>
+          <p className="text-sm text-slate-500">
+            Our AI is detecting dyslexia patterns in the text
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-slate-200 flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
+    <Card className="flex flex-col h-full min-h-[400px] lg:h-[calc(100vh-200px)]">
       {/* Panel Header */}
-      <div className="px-6 py-4 border-b border-slate-100">
-        <div className="flex items-center justify-between">
+      <CardHeader className="border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-purple-500" />
-              විශ්ලේෂණ ප්‍රතිඵල
-            </h2>
+              <span className="sinhala-text">විශ්ලේෂණ ප්‍රතිඵල</span>
+            </CardTitle>
             <p className="text-sm text-slate-500 mt-1">
               Click on highlighted words to review corrections
             </p>
@@ -146,87 +160,83 @@ function RightPanel() {
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             {/* Save to Cloud Button */}
-            <button
+            <Button
+              variant={saved ? "success" : saveError ? "destructive" : "outline"}
+              size="sm"
               onClick={handleSave}
               disabled={saving || pendingCount > 0}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                saved
-                  ? "bg-green-100 text-green-700"
-                  : saveError
-                  ? "bg-red-100 text-red-700"
-                  : "bg-indigo-100 hover:bg-indigo-200 text-indigo-700"
-              } ${(saving || pendingCount > 0) ? "opacity-50 cursor-not-allowed" : ""}`}
-              title={pendingCount > 0 ? "Review all errors before saving" : "Save to cloud database"}
+              title={
+                pendingCount > 0
+                  ? "Review all errors before saving"
+                  : "Save to cloud database"
+              }
             >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving...</span>
+                  <span className="hidden sm:inline">Saving...</span>
                 </>
               ) : saved ? (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Saved!</span>
+                  <span className="hidden sm:inline">Saved!</span>
                 </>
               ) : saveError ? (
                 <>
                   <XCircle className="w-4 h-4" />
-                  <span>Error</span>
+                  <span className="hidden sm:inline">Error</span>
                 </>
               ) : (
                 <>
                   <Cloud className="w-4 h-4" />
-                  <span>Save to Cloud</span>
+                  <span className="hidden sm:inline">Save</span>
                 </>
               )}
-            </button>
+            </Button>
 
             {/* Copy Button */}
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
-            >
+            <Button variant="secondary" size="sm" onClick={handleCopy}>
               {copied ? (
                 <>
                   <Check className="w-4 h-4 text-green-500" />
-                  <span>Copied!</span>
+                  <span className="hidden sm:inline">Copied!</span>
                 </>
               ) : (
                 <>
                   <Copy className="w-4 h-4" />
-                  <span>Copy Result</span>
+                  <span className="hidden sm:inline">Copy</span>
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Stats Bar */}
-        <div className="flex items-center gap-4 mt-3 text-sm">
-          <div className="flex items-center gap-1.5 text-red-600">
-            <AlertTriangle className="w-4 h-4" />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-3">
+          <Badge variant="error" className="gap-1">
+            <AlertTriangle className="w-3 h-3" />
             <span>{totalErrors} errors</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-green-600">
-            <CheckCircle2 className="w-4 h-4" />
+          </Badge>
+          <Badge variant="success" className="gap-1">
+            <CheckCircle2 className="w-3 h-3" />
             <span>{correctedCount} corrected</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-500">
-            <XCircle className="w-4 h-4" />
+          </Badge>
+          <Badge variant="default" className="gap-1">
+            <XCircle className="w-3 h-3" />
             <span>{ignoredCount} ignored</span>
-          </div>
+          </Badge>
           {pendingCount > 0 && (
-            <div className="flex items-center gap-1.5 text-amber-600">
+            <Badge variant="warning" className="gap-1">
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
               <span>{pendingCount} pending</span>
-            </div>
+            </Badge>
           )}
         </div>
-      </div>
+      </CardHeader>
 
       {/* Interactive Text Area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="text-xl leading-relaxed sinhala-text" dir="auto">
+      <CardContent className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="text-lg sm:text-xl leading-relaxed sinhala-text" dir="auto">
           {tokens.map((token) => {
             if (token.type === "whitespace") {
               return <span key={token.id}>{token.displayWord}</span>;
@@ -244,16 +254,16 @@ function RightPanel() {
             );
           })}
         </div>
-      </div>
+      </CardContent>
 
       {/* Footer Info */}
-      <div className="px-6 py-3 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>Model: {modelUsed}</span>
+      <div className="px-4 sm:px-6 py-3 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-slate-500 gap-1">
+          <span>Model: {getModelDisplayName()}</span>
           <span>Processing time: {processingTime?.toFixed(0)}ms</span>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 

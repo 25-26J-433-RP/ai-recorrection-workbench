@@ -21,13 +21,13 @@ function AppContent() {
   }, [checkApiStatus]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex flex-col">
       {/* Header */}
       <Header />
 
-      {/* Main Content - Split Screen */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+      {/* Main Content - Responsive Split Screen */}
+      <main className="flex-1 container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 h-full">
           {/* Left Panel - Input */}
           <LeftPanel />
 
