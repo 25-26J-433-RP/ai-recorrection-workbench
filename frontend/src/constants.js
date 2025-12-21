@@ -68,7 +68,7 @@ export const ERROR_TYPES = {
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: 120000, // 120 seconds (2 minutes) for large essay processing
   ENDPOINTS: {
     ANALYZE: "/api/v1/analyze",
     HEALTH: "/api/v1/health",

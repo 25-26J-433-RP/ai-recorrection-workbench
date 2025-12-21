@@ -46,8 +46,9 @@ class LLMService:
             model=self.settings.ollama_model,
             temperature=self.settings.model_temperature,
             num_predict=self.settings.model_max_tokens,
+            timeout=self.settings.ollama_timeout,  # Add timeout for large essays
         )
-        logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}")
+        logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}, timeout: {self.settings.ollama_timeout}s")
     
     async def initialize(self) -> bool:
         """
@@ -255,7 +256,15 @@ class LLMService:
                 logger.warning("Empty response from Ollama")
                 return text, 0.0, []
             
+            # Debug: Log raw model response
+            logger.info(f"Raw model response (first 500 chars): {response[:500] if len(response) > 500 else response}")
+            
             corrected, confidence, analysis = self._parse_response(response.strip(), text)
+            
+            # Debug: Log parsed analysis
+            logger.info(f"Parsed analysis array: {len(analysis)} errors found")
+            for i, err in enumerate(analysis):
+                logger.info(f"  Error {i+1}: word='{err.get('word', '')}', type='{err.get('type', '')}', suggestion='{err.get('suggestion', '')}'")
             
             return corrected, confidence, analysis
             

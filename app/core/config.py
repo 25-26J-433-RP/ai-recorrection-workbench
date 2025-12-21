@@ -23,11 +23,11 @@ class Settings(BaseSettings):
     # Ollama Configuration
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "hf.co/hasinduOnline/akura_llama_8b_dyslexia:Q4_K_M"
-    ollama_timeout: int = 120
+    ollama_timeout: int = 300  # 5 minutes for large essays
     
     # Model Configuration
     model_temperature: float = 0.3
-    model_max_tokens: int = 512
+    model_max_tokens: int = 2048  # Increased for large essays
     ai_confidence_threshold: float = 0.7
     
     # Logging
