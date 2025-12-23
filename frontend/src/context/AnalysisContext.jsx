@@ -67,6 +67,7 @@ const ACTIONS = {
   ACCEPT_CORRECTION: "ACCEPT_CORRECTION",
   REJECT_CORRECTION: "REJECT_CORRECTION",
   EDIT_CORRECTION: "EDIT_CORRECTION",
+  EDIT_WORD: "EDIT_WORD",
   SELECT_TOKEN: "SELECT_TOKEN",
   TOGGLE_REPORT: "TOGGLE_REPORT",
   SET_API_STATUS: "SET_API_STATUS",
@@ -275,6 +276,24 @@ function analysisReducer(state, action) {
       };
     }
 
+    case ACTIONS.EDIT_WORD: {
+      // For editing any word (normal or error)
+      const { tokenId, newWord } = action.payload;
+      const tokens = state.tokens.map((token) => {
+        if (token.id === tokenId) {
+          return {
+            ...token,
+            displayWord: newWord,
+          };
+        }
+        return token;
+      });
+      return {
+        ...state,
+        tokens,
+      };
+    }
+
     case ACTIONS.SELECT_TOKEN:
       return {
         ...state,
@@ -409,6 +428,14 @@ export function AnalysisProvider({ children }) {
     dispatch({ type: ACTIONS.SELECT_TOKEN, payload: tokenId });
   }, []);
 
+  // Edit any word (not just errors)
+  const editWord = useCallback((tokenId, newWord) => {
+    dispatch({
+      type: ACTIONS.EDIT_WORD,
+      payload: { tokenId, newWord },
+    });
+  }, []);
+
   const toggleReport = useCallback(() => {
     dispatch({ type: ACTIONS.TOGGLE_REPORT });
   }, []);
@@ -458,6 +485,7 @@ export function AnalysisProvider({ children }) {
     acceptCorrection,
     rejectCorrection,
     editCorrection,
+    editWord,
     selectToken,
     toggleReport,
     checkApiStatus,

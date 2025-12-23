@@ -19,8 +19,10 @@ import {
 import { useAnalysis } from "../context/AnalysisContext";
 import { WORD_STATES } from "../constants";
 import ErrorToken from "./ErrorToken";
+import EditableWord from "./EditableWord";
 import { Button, Card, CardHeader, CardTitle, CardContent, Badge, Skeleton } from "./ui";
 import apiService from "../services/api";
+import { Edit2 } from "lucide-react";
 
 function RightPanel() {
   const {
@@ -162,7 +164,7 @@ function RightPanel() {
               variant={saved ? "success" : saveError ? "destructive" : "outline"}
               size="sm"
               onClick={handleSave}
-              disabled={saving || pendingCount > 0}
+              disabled={saving}
               title={
                 pendingCount > 0
                   ? "Review all errors before saving"
@@ -244,11 +246,9 @@ function RightPanel() {
               return <ErrorToken key={token.id} token={token} />;
             }
 
-            // Normal word
+            // Normal word - make it editable too
             return (
-              <span key={token.id} className="text-slate-800">
-                {token.displayWord}
-              </span>
+              <EditableWord key={token.id} token={token} />
             );
           })}
         </div>

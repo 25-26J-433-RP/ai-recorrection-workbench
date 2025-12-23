@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Akura AI - Dyslexia Correction API",
-    "description": "API collection for Akura AI Sinhala dyslexic word correction",
+    "description": "API collection for Akura AI Sinhala dyslexic word correction © 2025",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -37,7 +37,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"text\": \"මකෙ ගෙදට බලෙක් ඉනවා. එයගෙ මන ටොමි. එයා හරි ලසනයි.\",\n  \"include_correct_words\": false\n}"
+          "raw": "{\n  \"text\": \"මම ඉස්කොලෙට යනව. මකෙ පසල ලොකුඉ. යලුවො කොඩක් ඉනවා. අපි සෙලම් කරනව. ටිච හරිම හොදයි. මම පසලට අසයි.\",\n  \"include_correct_words\": false\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/analyze",
@@ -70,28 +70,6 @@
       }
     },
     {
-      "name": "Analyze Text (Full Essay)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"මකෙ ගෙදට බලෙක් ඉනවා. එයගෙ මන ටොමි. එයා හරි ලසනයි. මම එයට කම දෙනව. ටොමි මට අදරෙයි. මම ටොමිට හරි අසයි.\",\n  \"include_correct_words\": true\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/analyze",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "analyze"]
-        },
-        "description": "Analyze a full essay with multiple sentences"
-      }
-    },
-    {
       "name": "Get Patterns",
       "request": {
         "method": "GET",
@@ -103,6 +81,130 @@
         },
         "description": "Get available dyslexia pattern types"
       }
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"original_text\": \"මම ඉස්කොලෙට යනව.\",\n  \"model_used\": \"akura_llama_8b\",\n  \"corrections\": [\n    {\n      \"original_word\": \"ඉස්කොලෙට\",\n      \"suggested_word\": \"ඉස්කෝලේට\",\n      \"pattern\": \"Spelling\",\n      \"confidence\": 0.9\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions"]
+            },
+            "description": "Create a new correction session"
+          }
+        },
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions?limit=50&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions"],
+              "query": [
+                {"key": "limit", "value": "50"},
+                {"key": "offset", "value": "0"}
+              ]
+            },
+            "description": "List all correction sessions"
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions", ":sessionId"],
+              "variable": [
+                {"key": "sessionId", "value": "uuid-here"}
+              ]
+            },
+            "description": "Get a single session with corrections"
+          }
+        },
+        {
+          "name": "Update Session",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"corrected_text\": \"මම ඉස්කෝලේට යනවා.\",\n  \"status\": \"completed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions", ":sessionId"],
+              "variable": [
+                {"key": "sessionId", "value": "uuid-here"}
+              ]
+            },
+            "description": "Update session with final corrected text"
+          }
+        },
+        {
+          "name": "Update Correction",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\",\n  \"final_word\": \"ඉස්කෝලේට\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId/corrections/:correctionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "corrections", ":correctionId"],
+              "variable": [
+                {"key": "sessionId", "value": "uuid-here"},
+                {"key": "correctionId", "value": "uuid-here"}
+              ]
+            },
+            "description": "Update a word correction (accept/reject/edit)"
+          }
+        },
+        {
+          "name": "Export Training Data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/sessions/export/training-data",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "sessions", "export", "training-data"]
+            },
+            "description": "Export completed sessions as training data for fine-tuning"
+          }
+        }
+      ]
     }
   ]
 }

@@ -68,7 +68,7 @@ function StatusBar() {
                 </span>
               </div>
             )}
-            <span className="text-slate-600">© 2024</span>
+            <span className="text-slate-600">© 2025</span>
           </div>
         </div>
       </div>
