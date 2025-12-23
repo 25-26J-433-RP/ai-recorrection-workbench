@@ -76,14 +76,18 @@ class LLMService:
             Tuple of (is_healthy, status_message)
         """
         try:
-            # Try a simple generation to verify the model is working
-            response = await asyncio.to_thread(
-                self.llm.invoke,
-                "Hello"
-            )
-            if response:
+            # Fast check: just verify the LLM is initialized (don't invoke it)
+            if self._llm is not None and self._is_initialized:
                 return True, f"Ollama ({self.settings.ollama_model}) is connected"
-            return False, "LLM returned empty response"
+            
+            # Try to initialize if not already
+            if self._llm is None:
+                _ = self.llm  # This will initialize
+                if self._llm is not None:
+                    self._is_initialized = True
+                    return True, f"Ollama ({self.settings.ollama_model}) is connected"
+            
+            return False, "LLM not initialized"
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             return False, f"Ollama connection failed: {str(e)}"

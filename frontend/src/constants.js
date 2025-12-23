@@ -68,7 +68,7 @@ export const ERROR_TYPES = {
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  TIMEOUT: 120000, // 120 seconds (2 minutes) for large essay processing
+  TIMEOUT: 300000, // 300 seconds (5 minutes) to match backend Ollama timeout
   ENDPOINTS: {
     ANALYZE: "/api/v1/analyze",
     HEALTH: "/api/v1/health",
