@@ -5,34 +5,17 @@ Database models for storing teacher correction feedback for model fine-tuning.
 """
 
 from datetime import datetime
-from typing import Optional, List
 from sqlalchemy import Column, String, Text, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-import enum
 
 from app.core.database import Base
-
-
-class SessionStatus(str, enum.Enum):
-    """Status of a correction session."""
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
-class CorrectionAction(str, enum.Enum):
-    """Teacher's action on a word correction."""
-    ACCEPT = "accept"
-    REJECT = "reject"
-    EDIT = "edit"
 
 
 class CorrectionSession(Base):
     """
     Represents a single essay correction session by a teacher.
-    
-    Stores the original text, final corrected text, and statistics.
     """
     __tablename__ = "correction_sessions"
     
@@ -48,7 +31,7 @@ class CorrectionSession(Base):
     edited_count = Column(Integer, default=0)
     
     # Status
-    status = Column(String(20), default=SessionStatus.IN_PROGRESS.value)
+    status = Column(String(20), default="in_progress")
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -78,9 +61,6 @@ class CorrectionSession(Base):
 class WordCorrection(Base):
     """
     Represents a single word correction decision by a teacher.
-    
-    Tracks the original word, AI suggestion, teacher's final decision,
-    and the action taken (accept/reject/edit).
     """
     __tablename__ = "word_corrections"
     
@@ -92,16 +72,16 @@ class WordCorrection(Base):
     suggested_word = Column(String(255), nullable=True)
     final_word = Column(String(255), nullable=True)
     
-    # Error pattern (e.g., "Spelling", "Phonetic", "Visual")
+    # Error pattern
     pattern = Column(String(100), nullable=True)
     
     # Teacher's action
-    action = Column(String(20), nullable=True)  # 'accept', 'reject', 'edit', None
+    action = Column(String(20), nullable=True)
     
     # AI confidence score
     confidence = Column(Float, nullable=True)
     
-    # Position in text (for ordering)
+    # Position in text
     position = Column(Integer, nullable=True)
     
     # Timestamps

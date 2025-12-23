@@ -69,13 +69,16 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️ LLM service initialization failed: {e}")
         logger.info("📋 Falling back to rule-based corrections only")
     
-    # Initialize database tables
+    # Initialize database tables (Supabase)
     try:
-        from app.core.database import init_db
-        # Import models to register them with SQLAlchemy
-        from app.models.feedback_models import CorrectionSession, WordCorrection
-        init_db()
-        logger.info("✅ Database tables initialized")
+        from app.core.database import init_db, engine
+        if engine is not None:
+            # Import models here to register them
+            import app.models.feedback_models  # noqa
+            init_db()
+            logger.info("✅ Database tables initialized")
+        else:
+            logger.info("ℹ️ Database not configured (no DATABASE_URL)")
     except Exception as e:
         logger.warning(f"⚠️ Database initialization skipped: {e}")
     
