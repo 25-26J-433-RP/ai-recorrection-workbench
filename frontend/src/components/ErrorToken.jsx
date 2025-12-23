@@ -48,7 +48,12 @@ function ErrorToken({ token }) {
   }, []);
 
   const handleClick = () => {
-    if (token.state === WORD_STATES.FLAGGED) {
+    // Allow re-correction: FLAGGED, CORRECTED, or IGNORED words can be clicked
+    if (
+      token.state === WORD_STATES.FLAGGED ||
+      token.state === WORD_STATES.CORRECTED ||
+      token.state === WORD_STATES.IGNORED
+    ) {
       setShowPopover(!showPopover);
       selectToken(token.id);
     }
@@ -103,11 +108,17 @@ function ErrorToken({ token }) {
         ref={tokenRef}
         onClick={handleClick}
         className={`error-token ${getStateClass()} ${
-          token.state === WORD_STATES.FLAGGED ? "cursor-pointer" : ""
+          token.state === WORD_STATES.FLAGGED ||
+          token.state === WORD_STATES.CORRECTED ||
+          token.state === WORD_STATES.IGNORED
+            ? "cursor-pointer"
+            : ""
         } sinhala-text`}
         title={
           token.state === WORD_STATES.FLAGGED
             ? `Click to review: ${token.pattern}`
+            : token.state === WORD_STATES.CORRECTED || token.state === WORD_STATES.IGNORED
+            ? "Click to change correction"
             : undefined
         }
       >
@@ -115,7 +126,12 @@ function ErrorToken({ token }) {
       </span>
 
       {/* Popover - uses fixed positioning to avoid overflow clipping */}
-      {showPopover && token.state === WORD_STATES.FLAGGED && (() => {
+      {/* Popover - show for FLAGGED, CORRECTED, or IGNORED states for re-correction */}
+      {showPopover &&
+        (token.state === WORD_STATES.FLAGGED ||
+          token.state === WORD_STATES.CORRECTED ||
+          token.state === WORD_STATES.IGNORED) &&
+        (() => {
         const rect = tokenRef.current?.getBoundingClientRect();
         const popoverStyle = rect ? {
           top: `${rect.top - 8}px`,

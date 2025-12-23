@@ -82,7 +82,7 @@ logs/
 *.bin
 *.gguf
 *.safetensors
-models/
+/models/
 
 # Jupyter Notebooks
 .ipynb_checkpoints

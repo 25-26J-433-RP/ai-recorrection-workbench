@@ -69,6 +69,16 @@ async def lifespan(app: FastAPI):
         logger.warning(f"⚠️ LLM service initialization failed: {e}")
         logger.info("📋 Falling back to rule-based corrections only")
     
+    # Initialize database tables
+    try:
+        from app.core.database import init_db
+        # Import models to register them with SQLAlchemy
+        from app.models.feedback_models import CorrectionSession, WordCorrection
+        init_db()
+        logger.info("✅ Database tables initialized")
+    except Exception as e:
+        logger.warning(f"⚠️ Database initialization skipped: {e}")
+    
     logger.info("🎉 Akura AI Backend is ready!")
     
     yield
@@ -139,6 +149,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include API routes
 app.include_router(router, prefix="/api/v1")
+
+# Include Feedback API routes
+from app.api.feedback_routes import router as feedback_router
+app.include_router(feedback_router, prefix="/api/v1")
 
 
 # Root endpoint
