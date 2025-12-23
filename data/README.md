@@ -8,6 +8,7 @@ This directory stores generated training data for fine-tuning the model.
 cd scripts
 python generate_training_data.py --output ../data/training_data.jsonl --count 5000
 ```
+hi
 
 ## Files
 

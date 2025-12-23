@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # Ollama Configuration
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "hf.co/hasinduOnline/akura_llama_8b_dyslexia:Q4_K_M"
+    ollama_model: str = "hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M"
     ollama_timeout: int = 300  # 5 minutes for large essays
     
     # Model Configuration

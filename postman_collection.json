@@ -1,0 +1,108 @@
+{
+  "info": {
+    "name": "Akura AI - Dyslexia Correction API",
+    "description": "API collection for Akura AI Sinhala dyslexic word correction",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "health"]
+        },
+        "description": "Check API and Ollama connection status"
+      }
+    },
+    {
+      "name": "Analyze Text",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"මකෙ ගෙදට බලෙක් ඉනවා. එයගෙ මන ටොමි. එයා හරි ලසනයි.\",\n  \"include_correct_words\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/analyze",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "analyze"]
+        },
+        "description": "Analyze Sinhala text for dyslexic writing errors"
+      }
+    },
+    {
+      "name": "Analyze Text (Single Sentence)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"එයා හරි ලසනයි.\",\n  \"include_correct_words\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/analyze",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "analyze"]
+        },
+        "description": "Analyze a single Sinhala sentence"
+      }
+    },
+    {
+      "name": "Analyze Text (Full Essay)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"මකෙ ගෙදට බලෙක් ඉනවා. එයගෙ මන ටොමි. එයා හරි ලසනයි. මම එයට කම දෙනව. ටොමි මට අදරෙයි. මම ටොමිට හරි අසයි.\",\n  \"include_correct_words\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/analyze",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "analyze"]
+        },
+        "description": "Analyze a full essay with multiple sentences"
+      }
+    },
+    {
+      "name": "Get Patterns",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/patterns",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "patterns"]
+        },
+        "description": "Get available dyslexia pattern types"
+      }
+    }
+  ]
+}

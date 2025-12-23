@@ -90,3 +90,9 @@ models/
 # Local configuration
 .env.local
 .env.*.local
+data/README.md
+data/README.md
+
+
+# Backend
+backend/data/
