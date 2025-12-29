@@ -9,6 +9,11 @@
       "key": "baseUrl",
       "value": "http://localhost:8000",
       "type": "string"
+    },
+    {
+      "key": "childId",
+      "value": "child123",
+      "type": "string"
     }
   ],
   "item": [
@@ -37,7 +42,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"text\": \"මම ඉස්කොලෙට යනව. මකෙ පසල ලොකුඉ. යලුවො කොඩක් ඉනවා. අපි සෙලම් කරනව. ටිච හරිම හොදයි. මම පසලට අසයි.\",\n  \"include_correct_words\": false\n}"
+          "raw": "{\n  \"text\": \"මම ඉස්කොලෙට යනව. මකෙ පසල ලොකුඉ.\",\n  \"include_correct_words\": false\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/v1/analyze",
@@ -45,28 +50,6 @@
           "path": ["api", "v1", "analyze"]
         },
         "description": "Analyze Sinhala text for dyslexic writing errors"
-      }
-    },
-    {
-      "name": "Analyze Text (Single Sentence)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"එයා හරි ලසනයි.\",\n  \"include_correct_words\": false\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/v1/analyze",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "v1", "analyze"]
-        },
-        "description": "Analyze a single Sinhala sentence"
       }
     },
     {
@@ -83,7 +66,105 @@
       }
     },
     {
-      "name": "Sessions",
+      "name": "Child Essays",
+      "item": [
+        {
+          "name": "Submit Essay for Child",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"original_text\": \"මම ගෙරද යනව. මගේ අම්මා හරි හොදයි.\",\n  \"title\": \"My Home Essay\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children/{{childId}}/essays",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children", "{{childId}}", "essays"]
+            },
+            "description": "Submit an essay for a child and get the corrected version"
+          }
+        },
+        {
+          "name": "Get All Child Essays",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children/{{childId}}/essays",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children", "{{childId}}", "essays"]
+            },
+            "description": "Get all corrected essays for a specific child"
+          }
+        },
+        {
+          "name": "Get Latest Essay",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children/{{childId}}/essays/latest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children", "{{childId}}", "essays", "latest"]
+            },
+            "description": "Get the most recent corrected essay for a child"
+          }
+        },
+        {
+          "name": "Get Specific Essay",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children/{{childId}}/essays/:essayId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children", "{{childId}}", "essays", ":essayId"],
+              "variable": [
+                {"key": "essayId", "value": "essay-uuid-here"}
+              ]
+            },
+            "description": "Get a specific essay by ID"
+          }
+        },
+        {
+          "name": "Delete Essay",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children/{{childId}}/essays/:essayId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children", "{{childId}}", "essays", ":essayId"],
+              "variable": [
+                {"key": "essayId", "value": "essay-uuid-here"}
+              ]
+            },
+            "description": "Delete a specific essay"
+          }
+        },
+        {
+          "name": "List All Children",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/children",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "children"]
+            },
+            "description": "List all children who have submitted essays"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions (Teacher Feedback)",
       "item": [
         {
           "name": "Create Session",
@@ -122,73 +203,6 @@
               ]
             },
             "description": "List all correction sessions"
-          }
-        },
-        {
-          "name": "Get Session",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "sessions", ":sessionId"],
-              "variable": [
-                {"key": "sessionId", "value": "uuid-here"}
-              ]
-            },
-            "description": "Get a single session with corrections"
-          }
-        },
-        {
-          "name": "Update Session",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"corrected_text\": \"මම ඉස්කෝලේට යනවා.\",\n  \"status\": \"completed\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "sessions", ":sessionId"],
-              "variable": [
-                {"key": "sessionId", "value": "uuid-here"}
-              ]
-            },
-            "description": "Update session with final corrected text"
-          }
-        },
-        {
-          "name": "Update Correction",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"accept\",\n  \"final_word\": \"ඉස්කෝලේට\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/sessions/:sessionId/corrections/:correctionId",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "corrections", ":correctionId"],
-              "variable": [
-                {"key": "sessionId", "value": "uuid-here"},
-                {"key": "correctionId", "value": "uuid-here"}
-              ]
-            },
-            "description": "Update a word correction (accept/reject/edit)"
           }
         },
         {

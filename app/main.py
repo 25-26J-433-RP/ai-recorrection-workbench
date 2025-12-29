@@ -157,6 +157,10 @@ app.include_router(router, prefix="/api/v1")
 from app.api.feedback_routes import router as feedback_router
 app.include_router(feedback_router, prefix="/api/v1")
 
+# Include Child Essay API routes
+from app.api.child_routes import router as child_router
+app.include_router(child_router, prefix="/api/v1")
+
 
 # Root endpoint
 @app.get("/", tags=["Root"])

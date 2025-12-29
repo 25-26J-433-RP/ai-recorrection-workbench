@@ -32,11 +32,16 @@ def get_db():
     """Get database session."""
     if SessionLocal is None:
         raise RuntimeError("Database not configured. Set DATABASE_URL in .env")
-    db = SessionLocal()
     try:
+        db = SessionLocal()
+        # Test connection
+        db.execute("SELECT 1")
         yield db
+    except Exception as e:
+        raise RuntimeError(f"Database connection failed: {str(e)}. Check DATABASE_URL and network connection.")
     finally:
-        db.close()
+        if 'db' in locals():
+            db.close()
 
 
 def init_db():
