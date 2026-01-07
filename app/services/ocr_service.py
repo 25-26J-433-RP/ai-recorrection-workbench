@@ -1,16 +1,21 @@
 """
 Akura AI - OCR Service
 
-This module provides OCR (Optical Character Recognition) for Sinhala handwritten text
-using Google Gemini Vision API. All OCR processing is done server-side.
+This module provides OCR (Optical Character Recognition) for Sinhala handwritten text.
+
+Supports two modes:
+1. External: Uses sinhala-ocr-service via API Gateway (Google Cloud Vision)
+2. Internal: Uses Gemini Vision API directly (fallback)
 """
 
 import base64
+import uuid
 import httpx
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from loguru import logger
 
 from app.core.config import get_settings
+from app.services.external_services import external_services
 
 
 # OCR prompt optimized for Sinhala handwritten text extraction
@@ -56,27 +61,75 @@ class OcrService:
         return self.settings.gemini_model
     
     def is_configured(self) -> bool:
-        """Check if the OCR service is properly configured."""
-        return bool(self.api_key)
+        """Check if the OCR service is properly configured (internal or external)."""
+        return bool(self.api_key) or external_services.is_ocr_configured()
     
     async def extract_text_from_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/jpeg",
+        filename: str = "image.jpg",
+        image_id: Optional[str] = None
+    ) -> Tuple[bool, str, float]:
+        """
+        Extract Sinhala text from an image.
+        
+        First tries external sinhala-ocr-service if configured,
+        then falls back to internal Gemini Vision API.
+        
+        Args:
+            image_bytes: Raw bytes of the image
+            mime_type: MIME type of the image (e.g., "image/jpeg", "image/png")
+            filename: Original filename (for external service)
+            image_id: Optional image ID for tracking (auto-generated if not provided)
+            
+        Returns:
+            Tuple of (success, extracted_text_or_error, confidence)
+        """
+        # Generate image_id if not provided
+        if not image_id:
+            image_id = str(uuid.uuid4())
+        
+        # Try external OCR service first if configured
+        if external_services.is_ocr_configured():
+            logger.info("Using external sinhala-ocr-service")
+            success, result = await external_services.call_ocr(
+                image_bytes=image_bytes,
+                filename=filename,
+                image_id=image_id
+            )
+            
+            if success:
+                cleaned_text = result.get("cleaned_text", "")
+                if cleaned_text:
+                    logger.info(f"External OCR extracted {len(cleaned_text)} characters")
+                    return True, cleaned_text, 0.95  # Higher confidence for Cloud Vision
+                else:
+                    logger.warning("External OCR returned empty text, falling back to Gemini")
+            else:
+                logger.warning(f"External OCR failed: {result.get('error')}, falling back to Gemini")
+        
+        # Fallback to internal Gemini OCR
+        return await self._internal_gemini_ocr(image_bytes, mime_type)
+    
+    async def _internal_gemini_ocr(
         self,
         image_bytes: bytes,
         mime_type: str = "image/jpeg"
     ) -> Tuple[bool, str, float]:
         """
-        Extract Sinhala text from an image using Gemini Vision API.
+        Internal OCR using Gemini Vision API.
         
         Args:
             image_bytes: Raw bytes of the image
-            mime_type: MIME type of the image (e.g., "image/jpeg", "image/png")
+            mime_type: MIME type of the image
             
         Returns:
             Tuple of (success, extracted_text_or_error, confidence)
         """
-        if not self.is_configured():
-            logger.warning("OCR service not configured - missing GEMINI_API_KEY")
-            return False, "OCR service not configured. Please set GEMINI_API_KEY.", 0.0
+        if not self.api_key:
+            logger.warning("Internal OCR not configured - missing GEMINI_API_KEY")
+            return False, "OCR service not configured. Please set GEMINI_API_KEY or enable external OCR.", 0.0
         
         try:
             # Convert image to base64
@@ -151,10 +204,18 @@ class OcrService:
         Returns:
             Tuple of (is_healthy, status_message)
         """
-        if not self.is_configured():
-            return False, "GEMINI_API_KEY not configured"
+        # Check external OCR first
+        if external_services.is_ocr_configured():
+            is_healthy, msg = await external_services.check_ocr_health()
+            if is_healthy:
+                return True, f"External OCR: {msg}"
+            # Fall through to check internal
         
-        return True, f"OCR service configured with model: {self.model}"
+        # Check internal Gemini OCR
+        if self.api_key:
+            return True, f"Internal OCR configured with model: {self.model}"
+        
+        return False, "No OCR service configured (set GEMINI_API_KEY or enable external OCR)"
 
 
 # Create singleton instance

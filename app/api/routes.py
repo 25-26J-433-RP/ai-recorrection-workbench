@@ -23,6 +23,7 @@ from app.models.schemas import (
 from app.services.analysis_service import analysis_service
 from app.services.llm_service import llm_service
 from app.services.ocr_service import ocr_service
+from app.services.external_services import external_services
 
 
 # Create router
@@ -437,7 +438,8 @@ async def extract_text_from_image(
     # Extract text using OCR service
     success, result, confidence = await ocr_service.extract_text_from_image(
         image_bytes=contents,
-        mime_type=image.content_type
+        mime_type=image.content_type,
+        filename=image.filename or "image.jpg"
     )
     
     if not success:
@@ -479,7 +481,28 @@ async def ocr_status() -> dict:
         "success": True,
         "configured": is_healthy,
         "status": status_msg,
-        "model": settings.gemini_model
+        "model": settings.gemini_model,
+        "use_external": settings.use_external_ocr
+    }
+
+
+@router.get(
+    "/external-services",
+    summary="External Services Status",
+    description="Check status of all external microservices (OCR, Pattern Detection)",
+    tags=["System"]
+)
+async def external_services_status() -> dict:
+    """
+    Check health of all configured external services.
+    
+    Returns:
+        Dict with service health information
+    """
+    status = await external_services.check_all_services()
+    return {
+        "success": True,
+        **status
     }
 
 

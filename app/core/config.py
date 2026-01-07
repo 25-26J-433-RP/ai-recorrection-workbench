@@ -51,6 +51,15 @@ class Settings(BaseSettings):
     # Database Configuration (Supabase PostgreSQL)
     database_url: str = ""
     
+    # API Gateway / External Microservices Configuration
+    api_gateway_url: str = ""                    # e.g., "http://localhost:8000" (gateway URL)
+    use_external_ocr: bool = False               # Use sinhala-ocr-service via gateway
+    use_external_patterns: bool = False          # Use dyslexic-pattern-detection-service via gateway
+    
+    # Direct service URLs (fallback if not using gateway)
+    ocr_service_url: str = ""                    # Direct OCR service URL  
+    pattern_service_url: str = ""                # Direct pattern detection URL
+    
     @property
     def cors_origins(self) -> List[str]:
         """Parse comma-separated CORS origins into a list."""
