@@ -276,7 +276,136 @@ class DatabaseService:
             "totalErrors": total_errors,
             "averageErrorsPerSession": total_errors / len(sessions) if sessions else 0.0
         }
+    
+    def get_student_profile(self, db: Session, student_id: str) -> dict:
+        """
+        Generate a dyslexia profile (error fingerprint) for a student.
+        
+        This analyzes all historical patterns to identify:
+        - Dominant error pattern
+        - Pattern distribution percentages
+        - Weakness areas (top 3 patterns)
+        - Improvement trend over time
+        - Recommended exercises
+        
+        Returns:
+            Dictionary with complete dyslexia profile
+        """
+        # Get all sessions for the student
+        sessions = self.get_student_sessions(db, student_id, limit=100)
+        
+        if not sessions:
+            return {
+                "studentId": student_id,
+                "studentName": None,
+                "studentGrade": None,
+                "dominantPattern": None,
+                "patternDistribution": {},
+                "weaknessAreas": [],
+                "totalSessions": 0,
+                "totalErrors": 0,
+                "averageErrorsPerSession": 0.0,
+                "improvementTrend": "unknown",
+                "recommendedExercises": []
+            }
+        
+        # Get student info from first session
+        student_name = sessions[0].student_name
+        student_grade = sessions[0].student_grade
+        
+        # Count all patterns
+        pattern_counts = {}
+        for session in sessions:
+            for action in session.actions:
+                if action.pattern:
+                    pattern_counts[action.pattern] = pattern_counts.get(action.pattern, 0) + 1
+        
+        total_patterns = sum(pattern_counts.values())
+        total_errors = sum(s.total_errors or 0 for s in sessions)
+        total_sessions = len(sessions)
+        
+        # Calculate pattern distribution (percentages)
+        pattern_distribution = {}
+        if total_patterns > 0:
+            for pattern, count in pattern_counts.items():
+                pattern_distribution[pattern] = round((count / total_patterns) * 100, 1)
+        
+        # Find dominant pattern and weakness areas
+        sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[1], reverse=True)
+        dominant_pattern = sorted_patterns[0][0] if sorted_patterns else None
+        weakness_areas = [p[0] for p in sorted_patterns[:3]]
+        
+        # Calculate improvement trend (compare recent vs older sessions)
+        improvement_trend = self._calculate_improvement_trend(sessions)
+        
+        # Get recommended exercises based on weakness areas
+        recommended_exercises = self._get_recommended_exercises(weakness_areas)
+        
+        return {
+            "studentId": student_id,
+            "studentName": student_name,
+            "studentGrade": student_grade,
+            "dominantPattern": dominant_pattern,
+            "patternDistribution": pattern_distribution,
+            "weaknessAreas": weakness_areas,
+            "totalSessions": total_sessions,
+            "totalErrors": total_errors,
+            "averageErrorsPerSession": round(total_errors / total_sessions, 2) if total_sessions else 0.0,
+            "improvementTrend": improvement_trend,
+            "recommendedExercises": recommended_exercises
+        }
+    
+    def _calculate_improvement_trend(self, sessions: list) -> str:
+        """
+        Calculate if student is improving, stable, or declining.
+        
+        Compares average errors in recent sessions vs older sessions.
+        """
+        if len(sessions) < 4:
+            return "unknown"
+        
+        # Sort by date (newest first - they're already sorted)
+        recent = sessions[:len(sessions)//2]
+        older = sessions[len(sessions)//2:]
+        
+        recent_avg = sum(s.total_errors or 0 for s in recent) / len(recent) if recent else 0
+        older_avg = sum(s.total_errors or 0 for s in older) / len(older) if older else 0
+        
+        if older_avg == 0:
+            return "stable"
+        
+        change = (recent_avg - older_avg) / older_avg
+        
+        if change < -0.15:  # 15% fewer errors
+            return "improving"
+        elif change > 0.15:  # 15% more errors
+            return "declining"
+        else:
+            return "stable"
+    
+    def _get_recommended_exercises(self, weakness_areas: list) -> list:
+        """
+        Get recommended remedial exercises based on weakness patterns.
+        """
+        # Import remedial actions from sinhala_mappings
+        from app.utils.sinhala_mappings import REMEDIAL_ACTIONS
+        
+        exercises = []
+        for pattern in weakness_areas:
+            if pattern in REMEDIAL_ACTIONS:
+                exercises.append(REMEDIAL_ACTIONS[pattern])
+            elif "Visual" in pattern and "Scrambling" in pattern:
+                exercises.append(REMEDIAL_ACTIONS.get("Visual Sequencing (Scrambled)", ""))
+            elif "Phonetic" in pattern:
+                exercises.append(REMEDIAL_ACTIONS.get("Phonetic Confusion (Dental/Retroflex)", ""))
+            elif "Visual" in pattern and "Reversal" in pattern:
+                exercises.append(REMEDIAL_ACTIONS.get("Visual Reversal (Shape Confusion)", ""))
+            elif "Grammar" in pattern:
+                exercises.append(REMEDIAL_ACTIONS.get("Grammar (Spoken vs Written)", ""))
+        
+        return [e for e in exercises if e]  # Filter empty strings
 
 
 # Singleton instance
 database_service = DatabaseService()
+

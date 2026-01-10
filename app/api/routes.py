@@ -22,6 +22,7 @@ from app.models.schemas import (
     StudentInfo,
     StudentProgress,
     SessionCreateWithStudent,
+    DyslexiaProfile,
 )
 from app.services.analysis_service import analysis_service
 from app.services.llm_service import llm_service
@@ -828,6 +829,54 @@ async def get_student_progress(
         
     except Exception as e:
         logger.error(f"Failed to get student progress: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/students/{student_id}/profile",
+    summary="Get Student Dyslexia Profile",
+    description="Generate a unique dyslexia 'error fingerprint' for a student based on historical patterns",
+    tags=["Students"]
+)
+async def get_student_profile(
+    student_id: str,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Get a complete dyslexia profile for a student.
+    
+    This endpoint analyzes all historical correction data to generate:
+    - Dominant error pattern
+    - Pattern distribution percentages
+    - Weakness areas (top 3 patterns)
+    - Improvement trend (improving/stable/declining)
+    - Recommended remedial exercises
+    
+    Args:
+        student_id: The student's identifier
+        
+    Returns:
+        Dict with complete dyslexia profile
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        profile = database_service.get_student_profile(db, student_id)
+        
+        return {
+            "success": True,
+            **profile
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get student profile: {e}")
         return {
             "success": False,
             "error": str(e)

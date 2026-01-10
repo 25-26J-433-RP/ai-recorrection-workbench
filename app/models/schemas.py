@@ -224,3 +224,55 @@ class SessionCreateWithStudent(BaseModel):
     
     class Config:
         populate_by_name = True
+
+
+class DyslexiaProfile(BaseModel):
+    """
+    Unique dyslexia error fingerprint for a student.
+    
+    Generated from historical correction patterns to identify
+    dominant error types and recommend targeted interventions.
+    """
+    
+    student_id: str = Field(..., alias="studentId")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    
+    # Pattern analysis
+    dominant_pattern: Optional[str] = Field(
+        default=None, 
+        alias="dominantPattern",
+        description="Most frequent error type"
+    )
+    pattern_distribution: dict = Field(
+        default={}, 
+        alias="patternDistribution",
+        description="Percentage breakdown: {pattern: percentage}"
+    )
+    weakness_areas: List[str] = Field(
+        default=[], 
+        alias="weaknessAreas",
+        description="Top 3 problem patterns"
+    )
+    
+    # Metrics
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    average_errors_per_session: float = Field(default=0.0, alias="averageErrorsPerSession")
+    
+    # Trend analysis
+    improvement_trend: str = Field(
+        default="unknown", 
+        alias="improvementTrend",
+        description="improving, stable, or declining"
+    )
+    
+    # Remediation
+    recommended_exercises: List[str] = Field(
+        default=[], 
+        alias="recommendedExercises",
+        description="Targeted exercises based on weakness areas"
+    )
+    
+    class Config:
+        populate_by_name = True
