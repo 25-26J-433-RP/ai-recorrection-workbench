@@ -64,6 +64,7 @@ class DatabaseService:
             student_id=student_id,
             student_name=student_name,
             student_grade=student_grade,
+            total_errors=len(actions) if actions else 0,  # Auto-calculate from actions
             completed_at=datetime.utcnow() if final_text else None
         )
         db.add(session)
@@ -75,7 +76,7 @@ class DatabaseService:
                 action = CorrectionAction(
                     session_id=session.id,
                     original_word=action_data.get("original_word", ""),
-                    suggestion=action_data.get("suggestion"),
+                    suggestion=action_data.get("suggestion") or action_data.get("suggested_word"),
                     final_word=action_data.get("final_word"),
                     action=action_data.get("action"),
                     pattern=action_data.get("pattern"),
