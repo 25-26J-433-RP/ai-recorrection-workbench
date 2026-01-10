@@ -178,3 +178,49 @@ class BatchAnalyzeResponse(BaseModel):
     
     class Config:
         populate_by_name = True
+
+
+# =============================================================================
+# STUDENT TRACKING SCHEMAS
+# =============================================================================
+
+class StudentInfo(BaseModel):
+    """Summary info for a student with correction history."""
+    
+    student_id: str = Field(..., alias="studentId", description="Student identifier")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    last_session_at: Optional[str] = Field(default=None, alias="lastSessionAt")
+    
+    class Config:
+        populate_by_name = True
+
+
+class StudentProgress(BaseModel):
+    """Progress metrics for a student over time."""
+    
+    student_id: str = Field(..., alias="studentId")
+    sessions: List[dict] = Field(default=[], description="Session history with dates and error counts")
+    pattern_frequency: dict = Field(default={}, alias="patternFrequency", description="Count of each dyslexia pattern")
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    average_errors_per_session: float = Field(default=0.0, alias="averageErrorsPerSession")
+    
+    class Config:
+        populate_by_name = True
+
+
+class SessionCreateWithStudent(BaseModel):
+    """Request model for creating a session with student info."""
+    
+    original_text: str = Field(..., alias="originalText", min_length=1)
+    model_used: Optional[str] = Field(default=None, alias="modelUsed")
+    student_id: Optional[str] = Field(default=None, alias="studentId")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    corrections: List[dict] = Field(default=[])
+    
+    class Config:
+        populate_by_name = True

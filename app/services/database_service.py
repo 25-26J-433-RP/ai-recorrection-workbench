@@ -34,7 +34,10 @@ class DatabaseService:
         final_text: Optional[str] = None,
         model_used: Optional[str] = None,
         is_demo_mode: bool = False,
-        actions: Optional[List[dict]] = None
+        actions: Optional[List[dict]] = None,
+        student_id: Optional[str] = None,
+        student_name: Optional[str] = None,
+        student_grade: Optional[str] = None
     ) -> CorrectionSession:
         """
         Save a correction session to database.
@@ -46,6 +49,9 @@ class DatabaseService:
             model_used: Name of model used
             is_demo_mode: Whether demo mode was used
             actions: List of correction actions
+            student_id: Student identifier (from frontend)
+            student_name: Student name
+            student_grade: Student grade level
             
         Returns:
             Created CorrectionSession
@@ -55,6 +61,9 @@ class DatabaseService:
             final_text=final_text,
             model_used=model_used,
             is_demo_mode="true" if is_demo_mode else "false",
+            student_id=student_id,
+            student_name=student_name,
+            student_grade=student_grade,
             completed_at=datetime.utcnow() if final_text else None
         )
         db.add(session)
@@ -76,7 +85,7 @@ class DatabaseService:
         
         db.commit()
         db.refresh(session)
-        logger.info(f"Saved session {session.id} with {len(actions) if actions else 0} actions")
+        logger.info(f"Saved session {session.id} for student {student_id} with {len(actions) if actions else 0} actions")
         return session
     
     def add_action(
@@ -162,6 +171,110 @@ class DatabaseService:
             db.commit()
             return True
         return False
+    
+    # =========================================================================
+    # STUDENT TRACKING METHODS
+    # =========================================================================
+    
+    def get_all_students(self, db: Session) -> List[dict]:
+        """
+        Get summary info for all students with correction sessions.
+        
+        Returns:
+            List of student info dictionaries
+        """
+        from sqlalchemy import func
+        
+        results = db.query(
+            CorrectionSession.student_id,
+            CorrectionSession.student_name,
+            CorrectionSession.student_grade,
+            func.count(CorrectionSession.id).label('total_sessions'),
+            func.sum(CorrectionSession.total_errors).label('total_errors'),
+            func.max(CorrectionSession.created_at).label('last_session_at')
+        ).filter(
+            CorrectionSession.student_id.isnot(None)
+        ).group_by(
+            CorrectionSession.student_id,
+            CorrectionSession.student_name,
+            CorrectionSession.student_grade
+        ).all()
+        
+        return [
+            {
+                "studentId": r.student_id,
+                "studentName": r.student_name,
+                "studentGrade": r.student_grade,
+                "totalSessions": r.total_sessions,
+                "totalErrors": r.total_errors or 0,
+                "lastSessionAt": r.last_session_at.isoformat() if r.last_session_at else None
+            }
+            for r in results
+        ]
+    
+    def get_student_sessions(
+        self,
+        db: Session,
+        student_id: str,
+        limit: int = 50,
+        offset: int = 0
+    ) -> List[CorrectionSession]:
+        """Get all sessions for a specific student."""
+        return db.query(CorrectionSession)\
+            .filter(CorrectionSession.student_id == student_id)\
+            .order_by(CorrectionSession.created_at.desc())\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
+    
+    def get_student_progress(self, db: Session, student_id: str) -> dict:
+        """
+        Get progress metrics for a specific student.
+        
+        Returns:
+            Dictionary with progress data
+        """
+        from sqlalchemy import func
+        
+        sessions = self.get_student_sessions(db, student_id, limit=100)
+        
+        if not sessions:
+            return {
+                "studentId": student_id,
+                "sessions": [],
+                "patternFrequency": {},
+                "totalSessions": 0,
+                "totalErrors": 0,
+                "averageErrorsPerSession": 0.0
+            }
+        
+        # Build session history
+        session_history = [
+            {
+                "date": s.created_at.isoformat() if s.created_at else None,
+                "errorCount": s.total_errors or 0,
+                "sessionId": str(s.id)
+            }
+            for s in sessions
+        ]
+        
+        # Count patterns across all sessions
+        pattern_counts = {}
+        for session in sessions:
+            for action in session.actions:
+                if action.pattern:
+                    pattern_counts[action.pattern] = pattern_counts.get(action.pattern, 0) + 1
+        
+        total_errors = sum(s.total_errors or 0 for s in sessions)
+        
+        return {
+            "studentId": student_id,
+            "sessions": session_history,
+            "patternFrequency": pattern_counts,
+            "totalSessions": len(sessions),
+            "totalErrors": total_errors,
+            "averageErrorsPerSession": total_errors / len(sessions) if sessions else 0.0
+        }
 
 
 # Singleton instance

@@ -19,6 +19,9 @@ from app.models.schemas import (
     BatchAnalyzeResponse,
     ErrorResponse,
     HealthResponse,
+    StudentInfo,
+    StudentProgress,
+    SessionCreateWithStudent,
 )
 from app.services.analysis_service import analysis_service
 from app.services.llm_service import llm_service
@@ -549,7 +552,11 @@ async def save_session(session_data: dict, db: Session = Depends(get_db)) -> dic
             final_text=session_data.get("final_text"),
             model_used=session_data.get("model_used"),
             is_demo_mode=session_data.get("is_demo_mode", False),
-            actions=session_data.get("actions", [])
+            actions=session_data.get("actions", []),
+            # Student tracking fields
+            student_id=session_data.get("student_id"),
+            student_name=session_data.get("student_name"),
+            student_grade=session_data.get("student_grade")
         )
         
         logger.info(f"Saved session {session.id} to database")
@@ -689,6 +696,138 @@ async def export_training_data(db: Session = Depends(get_db)) -> dict:
         
     except Exception as e:
         logger.error(f"Failed to export training data: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# =============================================================================
+# STUDENT TRACKING ENDPOINTS
+# =============================================================================
+
+@router.get(
+    "/students",
+    summary="List All Students",
+    description="Get summary info for all students with correction sessions",
+    tags=["Students"]
+)
+async def list_students(db: Session = Depends(get_db)) -> dict:
+    """
+    Get all students who have correction sessions.
+    
+    Returns:
+        Dict with list of student summaries
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        students = database_service.get_all_students(db)
+        
+        return {
+            "success": True,
+            "students": students,
+            "total": len(students)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to list students: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/students/{student_id}/sessions",
+    summary="Get Student Sessions",
+    description="Get all correction sessions for a specific student",
+    tags=["Students"]
+)
+async def get_student_sessions(
+    student_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Get all correction sessions for a specific student.
+    
+    Args:
+        student_id: The student's identifier
+        limit: Maximum number of sessions to return
+        offset: Number of sessions to skip
+        
+    Returns:
+        Dict with list of sessions
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        sessions = database_service.get_student_sessions(
+            db, student_id, limit=limit, offset=offset
+        )
+        
+        return {
+            "success": True,
+            "studentId": student_id,
+            "sessions": [s.to_dict() for s in sessions],
+            "total": len(sessions),
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get student sessions: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get(
+    "/students/{student_id}/progress",
+    summary="Get Student Progress",
+    description="Get progress metrics for a specific student over time",
+    tags=["Students"]
+)
+async def get_student_progress(
+    student_id: str,
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Get progress metrics for a specific student.
+    
+    Args:
+        student_id: The student's identifier
+        
+    Returns:
+        Dict with progress data including session history and pattern frequency
+    """
+    if not DB_AVAILABLE:
+        return {
+            "success": False,
+            "error": "Database not configured. Set DATABASE_URL in .env"
+        }
+    
+    try:
+        progress = database_service.get_student_progress(db, student_id)
+        
+        return {
+            "success": True,
+            **progress
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get student progress: {e}")
         return {
             "success": False,
             "error": str(e)
