@@ -274,5 +274,22 @@ class DyslexiaProfile(BaseModel):
         description="Targeted exercises based on weakness areas"
     )
     
+    # Severity scoring (0-100)
+    severity_score: float = Field(
+        default=0.0, 
+        alias="severityScore",
+        description="Overall dyslexia severity (0-100)"
+    )
+    severity_level: str = Field(
+        default="unknown",
+        alias="severityLevel",
+        description="mild (0-30), moderate (31-60), severe (61-100)"
+    )
+    severity_breakdown: dict = Field(
+        default={},
+        alias="severityBreakdown",
+        description="Component scores: errorRate, patternDiversity, consistency"
+    )
+    
     class Config:
         populate_by_name = True

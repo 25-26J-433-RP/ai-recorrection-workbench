@@ -341,6 +341,9 @@ class DatabaseService:
         # Get recommended exercises based on weakness areas
         recommended_exercises = self._get_recommended_exercises(weakness_areas)
         
+        # Calculate severity score
+        severity = self._calculate_severity_score(sessions, pattern_distribution, improvement_trend)
+        
         return {
             "studentId": student_id,
             "studentName": student_name,
@@ -352,7 +355,11 @@ class DatabaseService:
             "totalErrors": total_errors,
             "averageErrorsPerSession": round(total_errors / total_sessions, 2) if total_sessions else 0.0,
             "improvementTrend": improvement_trend,
-            "recommendedExercises": recommended_exercises
+            "recommendedExercises": recommended_exercises,
+            # Severity scoring
+            "severityScore": severity["severityScore"],
+            "severityLevel": severity["severityLevel"],
+            "severityBreakdown": severity["severityBreakdown"]
         }
     
     def _calculate_improvement_trend(self, sessions: list) -> str:
@@ -404,8 +411,105 @@ class DatabaseService:
                 exercises.append(REMEDIAL_ACTIONS.get("Grammar (Spoken vs Written)", ""))
         
         return [e for e in exercises if e]  # Filter empty strings
+    
+    def _calculate_severity_score(
+        self,
+        sessions: list,
+        pattern_distribution: dict,
+        improvement_trend: str
+    ) -> dict:
+        """
+        Calculate Dyslexia Severity Score (DSS) on a 0-100 scale.
+        
+        Formula: DSS = (errorRate × 0.4) + (patternDiversity × 0.3) + (consistency × 0.3)
+        
+        Components:
+        - errorRate: Average errors per session, normalized to 0-100
+        - patternDiversity: Number of different patterns (more = higher severity)
+        - consistency: How consistent errors are across sessions
+        
+        Returns:
+            Dict with score, level, and breakdown
+        """
+        if not sessions:
+            return {
+                "severityScore": 0.0,
+                "severityLevel": "unknown",
+                "severityBreakdown": {}
+            }
+        
+        total_errors = sum(s.total_errors or 0 for s in sessions)
+        total_sessions = len(sessions)
+        avg_errors = total_errors / total_sessions if total_sessions else 0
+        
+        # Component 1: Error Rate (0-100)
+        # Assume 10+ errors/session = maximum severity (100)
+        error_rate_score = min(100, (avg_errors / 10) * 100)
+        
+        # Component 2: Pattern Diversity (0-100)
+        # Having all 4 patterns = 100, 1 pattern = 25
+        num_patterns = len(pattern_distribution)
+        pattern_diversity_score = min(100, (num_patterns / 4) * 100)
+        
+        # Component 3: Consistency (0-100)
+        # How consistent are errors across sessions? Higher variance = higher severity
+        if total_sessions >= 2:
+            error_counts = [s.total_errors or 0 for s in sessions]
+            mean_errors = sum(error_counts) / len(error_counts)
+            variance = sum((x - mean_errors) ** 2 for x in error_counts) / len(error_counts)
+            std_dev = variance ** 0.5
+            
+            # High std_dev means inconsistent (could be random) - lower severity
+            # Low std_dev means consistent errors - higher severity
+            # Normalize: if std_dev is low relative to mean, consistency is high
+            if mean_errors > 0:
+                cv = std_dev / mean_errors  # Coefficient of variation
+                consistency_score = max(0, min(100, (1 - cv) * 100))
+            else:
+                consistency_score = 0
+        else:
+            consistency_score = 50  # Unknown with only 1 session
+        
+        # Adjust for trend
+        trend_modifier = 0
+        if improvement_trend == "improving":
+            trend_modifier = -10  # Reduce severity if improving
+        elif improvement_trend == "declining":
+            trend_modifier = 10  # Increase severity if declining
+        
+        # Calculate weighted score
+        severity_score = (
+            (error_rate_score * 0.4) +
+            (pattern_diversity_score * 0.3) +
+            (consistency_score * 0.3) +
+            trend_modifier
+        )
+        
+        # Clamp to 0-100
+        severity_score = max(0, min(100, severity_score))
+        severity_score = round(severity_score, 1)
+        
+        # Determine level
+        if severity_score <= 30:
+            severity_level = "mild"
+        elif severity_score <= 60:
+            severity_level = "moderate"
+        else:
+            severity_level = "severe"
+        
+        return {
+            "severityScore": severity_score,
+            "severityLevel": severity_level,
+            "severityBreakdown": {
+                "errorRate": round(error_rate_score, 1),
+                "patternDiversity": round(pattern_diversity_score, 1),
+                "consistency": round(consistency_score, 1),
+                "trendModifier": trend_modifier
+            }
+        }
 
 
 # Singleton instance
 database_service = DatabaseService()
+
 
