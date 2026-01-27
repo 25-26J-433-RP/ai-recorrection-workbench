@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
     
-    # CORS Configuration
-    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:8080"
+    # CORS Configuration - Include Expo dev server ports
+    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:8081,http://localhost:19000,http://localhost:19001,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006"
     
     # Rate Limiting
     rate_limit_requests: int = 100

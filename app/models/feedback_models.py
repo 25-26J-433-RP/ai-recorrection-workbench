@@ -18,6 +18,7 @@ class CorrectionSession(Base):
     Represents a single essay correction session by a teacher.
     """
     __tablename__ = "correction_sessions"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     original_text = Column(Text, nullable=False)
@@ -71,6 +72,7 @@ class WordCorrection(Base):
     Represents a single word correction decision by a teacher.
     """
     __tablename__ = "word_corrections"
+    __table_args__ = {'extend_existing': True}
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     session_id = Column(UUID(as_uuid=True), ForeignKey("correction_sessions.id", ondelete="CASCADE"), nullable=False)
