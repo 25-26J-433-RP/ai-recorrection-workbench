@@ -45,7 +45,6 @@ class LLMService:
             base_url=self.settings.ollama_base_url,
             model=self.settings.ollama_model,
             temperature=self.settings.model_temperature,
-            num_predict=self.settings.model_max_tokens,
             timeout=self.settings.ollama_timeout,  # Add timeout for large essays
         )
         logger.info(f"Initialized Ollama LLM with model: {self.settings.ollama_model}, timeout: {self.settings.ollama_timeout}s")
