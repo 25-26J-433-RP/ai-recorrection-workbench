@@ -34,8 +34,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
     
-    # CORS Configuration
-    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:8080"
+    # CORS Configuration - Include Expo dev server ports
+    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:8080,http://localhost:8081,http://localhost:19000,http://localhost:19001,http://localhost:19006,http://127.0.0.1:8081,http://127.0.0.1:19006"
     
     # Rate Limiting
     rate_limit_requests: int = 100
@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     
     # Database Configuration (Supabase PostgreSQL)
     database_url: str = ""
+    
+    # API Gateway / External Microservices Configuration
+    api_gateway_url: str = ""                    # e.g., "http://localhost:8000" (gateway URL)
+    use_external_ocr: bool = False               # Use sinhala-ocr-service via gateway
+    use_external_patterns: bool = False          # Use dyslexic-pattern-detection-service via gateway
+    
+    # Direct service URLs (fallback if not using gateway)
+    ocr_service_url: str = ""                    # Direct OCR service URL  
+    pattern_service_url: str = ""                # Direct pattern detection URL
     
     @property
     def cors_origins(self) -> List[str]:

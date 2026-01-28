@@ -66,47 +66,29 @@ class AnalysisService:
             # Send full sentence to LLM and get JSON response
             corrected_text, confidence, model_analysis = await self.llm.correct_text_with_analysis(text)
             
-            # Build word analyses from model's analysis array
-            word_analyses = []
-            original_words = text.split()
+            # Build full word analyses (forcing include_correct=True to get complete sentence structure)
+            full_analyses = self._build_word_analyses_from_model(
+                original_text=text,
+                corrected_text=corrected_text,
+                model_analysis=model_analysis,
+                include_correct=True
+            )
             
-            # Process model's analysis (errors only)
-            for error_item in model_analysis:
-                word = error_item.get("word", "")
-                error_type = error_item.get("type", "Unknown")
-                suggestion = error_item.get("suggestion", word)
-                
-                word_analyses.append(WordAnalysis(
-                    word=word,
-                    type=WordType.ERROR,
-                    dyslexia_pattern=error_type,
-                    suggestion=suggestion,
-                    explanation=f"Detected: {error_type}",
-                    confidence=confidence,
-                    source="ai"
-                ))
+            # Reconstruct corrected_text from tokens to ensure strict consistency
+            # This handles duplicate words correctly by preserving order
+            final_corrected_text = self._reconstruct_text_from_tokens(full_analyses)
             
-            # Add correct words if requested
-            if include_correct_words:
-                error_words = {item.get("word", "") for item in model_analysis}
-                for word in original_words:
-                    if word not in error_words:
-                        word_analyses.append(WordAnalysis(
-                            word=word,
-                            type=WordType.CORRECT,
-                            dyslexia_pattern=None,
-                            suggestion=None,
-                            explanation=None,
-                            confidence=1.0,
-                            source=None
-                        ))
+            # Filter for response data if user didn't request correct words
+            response_data = full_analyses
+            if not include_correct_words:
+                response_data = [w for w in full_analyses if w.type == WordType.ERROR]
             
             processing_time = (time.time() - start_time) * 1000
             
             return AnalyzeResponse(
                 success=True,
-                data=word_analyses,
-                corrected_text=corrected_text,
+                data=response_data,
+                corrected_text=final_corrected_text,
                 original_text=text,
                 processing_time_ms=round(processing_time, 2),
                 model_used=self.llm.get_model_name()
@@ -251,20 +233,32 @@ class AnalysisService:
         
         return analyses
     
+    def _reconstruct_text_from_tokens(self, analyses: List[WordAnalysis]) -> str:
+        """
+        Reconstruct the full corrected text string from the ordered list of tokens.
+        
+        Args:
+            analyses: List of WordAnalysis objects (must cover full sentence)
+            
+        Returns:
+            The reconstructed corrected text string
+        """
+        words = []
+        for analysis in analyses:
+            if analysis.type == WordType.ERROR and analysis.suggestion:
+                words.append(analysis.suggestion)
+            else:
+                words.append(analysis.word)
+        return " ".join(words)
+
     def _build_corrected_text(
         self,
         original_words: List[str],
         analyses: List[WordAnalysis]
     ) -> str:
         """
+        Deprecated: Use _reconstruct_text_from_tokens instead.
         Build the final corrected text from word analyses.
-        
-        Args:
-            original_words: Original word list
-            analyses: List of word analyses
-            
-        Returns:
-            Corrected text string
         """
         # Create a map of original word to correction
         correction_map = {}

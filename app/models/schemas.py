@@ -178,3 +178,118 @@ class BatchAnalyzeResponse(BaseModel):
     
     class Config:
         populate_by_name = True
+
+
+# =============================================================================
+# STUDENT TRACKING SCHEMAS
+# =============================================================================
+
+class StudentInfo(BaseModel):
+    """Summary info for a student with correction history."""
+    
+    student_id: str = Field(..., alias="studentId", description="Student identifier")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    last_session_at: Optional[str] = Field(default=None, alias="lastSessionAt")
+    
+    class Config:
+        populate_by_name = True
+
+
+class StudentProgress(BaseModel):
+    """Progress metrics for a student over time."""
+    
+    student_id: str = Field(..., alias="studentId")
+    sessions: List[dict] = Field(default=[], description="Session history with dates and error counts")
+    pattern_frequency: dict = Field(default={}, alias="patternFrequency", description="Count of each dyslexia pattern")
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    average_errors_per_session: float = Field(default=0.0, alias="averageErrorsPerSession")
+    
+    class Config:
+        populate_by_name = True
+
+
+class SessionCreateWithStudent(BaseModel):
+    """Request model for creating a session with student info."""
+    
+    original_text: str = Field(..., alias="originalText", min_length=1)
+    model_used: Optional[str] = Field(default=None, alias="modelUsed")
+    student_id: Optional[str] = Field(default=None, alias="studentId")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    corrections: List[dict] = Field(default=[])
+    
+    class Config:
+        populate_by_name = True
+
+
+class DyslexiaProfile(BaseModel):
+    """
+    Unique dyslexia error fingerprint for a student.
+    
+    Generated from historical correction patterns to identify
+    dominant error types and recommend targeted interventions.
+    """
+    
+    student_id: str = Field(..., alias="studentId")
+    student_name: Optional[str] = Field(default=None, alias="studentName")
+    student_grade: Optional[str] = Field(default=None, alias="studentGrade")
+    
+    # Pattern analysis
+    dominant_pattern: Optional[str] = Field(
+        default=None, 
+        alias="dominantPattern",
+        description="Most frequent error type"
+    )
+    pattern_distribution: dict = Field(
+        default={}, 
+        alias="patternDistribution",
+        description="Percentage breakdown: {pattern: percentage}"
+    )
+    weakness_areas: List[str] = Field(
+        default=[], 
+        alias="weaknessAreas",
+        description="Top 3 problem patterns"
+    )
+    
+    # Metrics
+    total_sessions: int = Field(default=0, alias="totalSessions")
+    total_errors: int = Field(default=0, alias="totalErrors")
+    average_errors_per_session: float = Field(default=0.0, alias="averageErrorsPerSession")
+    
+    # Trend analysis
+    improvement_trend: str = Field(
+        default="unknown", 
+        alias="improvementTrend",
+        description="improving, stable, or declining"
+    )
+    
+    # Remediation
+    recommended_exercises: List[str] = Field(
+        default=[], 
+        alias="recommendedExercises",
+        description="Targeted exercises based on weakness areas"
+    )
+    
+    # Severity scoring (0-100)
+    severity_score: float = Field(
+        default=0.0, 
+        alias="severityScore",
+        description="Overall dyslexia severity (0-100)"
+    )
+    severity_level: str = Field(
+        default="unknown",
+        alias="severityLevel",
+        description="mild (0-30), moderate (31-60), severe (61-100)"
+    )
+    severity_breakdown: dict = Field(
+        default={},
+        alias="severityBreakdown",
+        description="Component scores: errorRate, patternDiversity, consistency"
+    )
+    
+    class Config:
+        populate_by_name = True
