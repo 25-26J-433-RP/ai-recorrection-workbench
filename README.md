@@ -217,14 +217,40 @@ DATABASE_URL=postgresql://postgres:password@db.xxx.supabase.co:5432/postgres
 
 ---
 
+## ☁️ Cloud Deployment (Azure / Request-Based)
+
+For **cheap, request-based** deployment (Azure Container Apps, Google Cloud Run):
+
+1. Set `LLM_PROVIDER=huggingface` in your `.env`
+2. Add your [Hugging Face token](https://huggingface.co/settings/tokens):
+   ```env
+   HF_API_TOKEN=your_token_here
+   HF_MODEL_ID=hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit
+   ```
+3. Deploy to Azure:
+   - **Guide**: [docs/AZURE_DEPLOYMENT.md](docs/AZURE_DEPLOYMENT.md)
+   - **PowerShell**: `$env:HF_API_TOKEN="your_token"; .\scripts\deploy-azure.ps1`
+4. You pay **per request** for Hugging Face inference, no idle cost
+
+**For local development** with Ollama:
+```env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+```
+
+---
+
 ## ⚙️ Configuration
 
 ### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M` | Fine-tuned model |
+| `LLM_PROVIDER` | `huggingface` | `huggingface` (request-based), `ollama` (local) |
+| `HF_API_TOKEN` | - | Hugging Face token (required for `huggingface` provider) |
+| `HF_MODEL_ID` | `hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit` | HF model ID |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL (local) |
+| `OLLAMA_MODEL` | `hf.co/.../4bit:Q4_K_M` | Fine-tuned Ollama model |
 | `OLLAMA_TIMEOUT` | `300` | Request timeout (seconds) |
 | `DATABASE_URL` | - | Supabase PostgreSQL URL |
 | `GEMINI_API_KEY` | - | For OCR feature (optional) |

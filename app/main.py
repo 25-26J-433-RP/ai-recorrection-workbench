@@ -58,8 +58,14 @@ async def lifespan(app: FastAPI):
     
     settings = get_settings()
     logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Model: {settings.ollama_model}")
-    logger.info(f"Ollama URL: {settings.ollama_base_url}")
+    logger.info(f"LLM Provider: {settings.llm_provider}")
+    if settings.llm_provider == "hf_space":
+        logger.info(f"HF Space: {settings.hf_space_url} (free)")
+    elif settings.llm_provider == "huggingface":
+        logger.info(f"HF Model: {settings.hf_model_id} (request-based)")
+    else:
+        logger.info(f"Ollama Model: {settings.ollama_model}")
+        logger.info(f"Ollama URL: {settings.ollama_base_url}")
     
     # Initialize LLM service
     try:

@@ -20,10 +20,18 @@ class Settings(BaseSettings):
     debug: bool = False
     environment: str = "production"
     
-    # Ollama Configuration
+    # Ollama Configuration (local development)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M"
     ollama_timeout: int = 300  # 5 minutes for large essays
+    
+    # Hugging Face Inference API (request-based)
+    hf_api_token: str = ""  # Get from https://huggingface.co/settings/tokens
+    hf_model_id: str = "hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit"
+    hf_api_timeout: int = 120  # seconds per request
+    
+    # HuggingFace Space (free GGUF model server)
+    hf_space_url: str = ""  # e.g. https://hasinduOnline-akura-ai-model.hf.space
     
     # Model Configuration
     model_temperature: float = 0.3
@@ -45,8 +53,8 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_model: str = "gemini-2.0-flash"
     
-    # LLM Provider: "ollama" or "gemini"
-    llm_provider: str = "ollama"  # Using fine-tuned Ollama model for text correction
+    # LLM Provider: "hf_space" (free), "huggingface", "ollama" (local), or "gemini"
+    llm_provider: str = "hf_space"  # HF Space = free GGUF model server
     
     # Database Configuration (Supabase PostgreSQL)
     database_url: str = ""
