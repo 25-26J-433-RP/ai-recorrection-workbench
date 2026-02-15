@@ -37,10 +37,8 @@ class LLMService:
     # the same JSON format as the fine-tuned Akura model.
     SECONDARY_CORRECTION_PROMPT = """You are an expert Sinhala language corrector specializing in detecting dyslexic writing patterns in children's essays.
 
-Analyze the following Sinhala text and correct any errors. For each error found, classify it as one of:
-- "Phonetic" — phonetic confusion (e.g., dental/retroflex mix-ups like න↔ණ, ල↔ළ, ද↔ඩ)
-- "Spelling" — spelling/visual errors (e.g., missing vowel signs, scrambled letters)
-- "Grammar" — grammar errors (e.g., spoken vs written form, missing suffixes)
+Analyze the following Sinhala text and correct any errors.:
+
 - නිවැරදි කරන්න. අර්ථය වෙනස් නොකරන්න. අවශ්‍ය දේවල් පමණක්. ප්‍රතිඵලය ලෙස නිවැරදි කළ පරාග්‍රාෆ් එක පමණක් දෙන්න
 Respond ONLY with valid JSON in this exact format (no extra text, no markdown):
 {"correction": "<full corrected text>", "analysis": [{"word": "<original wrong word>", "type": "<error type>", "suggestion": "<corrected word>"}]}
