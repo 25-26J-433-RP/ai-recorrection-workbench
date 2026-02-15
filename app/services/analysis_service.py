@@ -311,10 +311,12 @@ class AnalysisService:
         """
         Merge results from Akura and secondary models using union logic.
         
+        Priority: Secondary model (general, high-capability) takes precedence.
+        
         For each word position in the original text:
-        - Both flag error → use Akura's suggestion (domain-specific), boost confidence, source="both"
-        - Only Akura flags error → use Akura entry, source="akura"
-        - Only secondary flags error → use secondary entry, source="secondary"
+        - Both flag error → use Secondary's suggestion (higher priority), boost confidence, source="both"
+        - Only secondary flags error → use secondary entry (high priority)
+        - Only Akura flags error → use Akura entry (domain-specific backup)
         - Neither flags error → word is correct
         
         Args:
@@ -360,7 +362,7 @@ class AnalysisService:
                     break
             
             if akura_item and secondary_item:
-                # Both models flag this word — use Akura suggestion, boost confidence
+                # Both models flag this word — use Secondary suggestion (higher priority), boost confidence
                 confidence = max(
                     akura_item.get("confidence", 0.9),
                     secondary_item.get("confidence", 0.9),
@@ -369,39 +371,39 @@ class AnalysisService:
                 merged_analyses.append(WordAnalysis(
                     word=word,
                     type=WordType.ERROR,
-                    dyslexia_pattern=akura_item.get("type", secondary_item.get("type", "Unknown")),
-                    suggestion=akura_item.get("suggestion", word),
-                    explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
+                    dyslexia_pattern=secondary_item.get("type", akura_item.get("type", "Unknown")),
+                    suggestion=secondary_item.get("suggestion", word),
+                    explanation=f"Detected: {secondary_item.get('type', akura_item.get('type', 'Unknown'))}",
                     confidence=round(confidence, 2),
                     source="ai"
                 ))
-                logger.debug(f"  BOTH: '{word}' → akura='{akura_item.get('suggestion')}', secondary='{secondary_item.get('suggestion')}'")
-                
-            elif akura_item:
-                # Only Akura flags this word
-                merged_analyses.append(WordAnalysis(
-                    word=word,
-                    type=WordType.ERROR,
-                    dyslexia_pattern=akura_item.get("type", "Unknown"),
-                    suggestion=akura_item.get("suggestion", word),
-                    explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
-                    confidence=0.9,
-                    source="ai"
-                ))
-                logger.debug(f"  AKURA only: '{word}' → '{akura_item.get('suggestion')}'")
+                logger.debug(f"  BOTH: '{word}' → secondary='{secondary_item.get('suggestion')}' (preferred), akura='{akura_item.get('suggestion')}'")
                 
             elif secondary_item:
-                # Only secondary model flags this word
+                # Only secondary model flags this word (high priority)
                 merged_analyses.append(WordAnalysis(
                     word=word,
                     type=WordType.ERROR,
                     dyslexia_pattern=secondary_item.get("type", "Unknown"),
                     suggestion=secondary_item.get("suggestion", word),
                     explanation=f"Detected: {secondary_item.get('type', 'Unknown')}",
-                    confidence=0.85,  # Slightly lower — not confirmed by domain model
+                    confidence=0.9,
                     source="ai"
                 ))
                 logger.debug(f"  SECONDARY only: '{word}' → '{secondary_item.get('suggestion')}'")
+                
+            elif akura_item:
+                # Only Akura flags this word (domain-specific backup)
+                merged_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=akura_item.get("type", "Unknown"),
+                    suggestion=akura_item.get("suggestion", word),
+                    explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
+                    confidence=0.85,
+                    source="ai"
+                ))
+                logger.debug(f"  AKURA only: '{word}' → '{akura_item.get('suggestion')}'")
                 
             elif include_correct:
                 merged_analyses.append(WordAnalysis(
