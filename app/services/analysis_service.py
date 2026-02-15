@@ -92,14 +92,17 @@ class AnalysisService:
             for i, chunk in enumerate(chunks):
                 logger.debug(f"Processing chunk {i+1}/{len(chunks)}: '{chunk[:80]}...'")
                 
-                # Step 1: Akura model (primary)
-                akura_corrected, akura_conf, akura_analysis = await self.llm.correct_text_with_analysis(chunk)
-                
                 if use_dual:
-                    # Step 2: Secondary model
-                    secondary_corrected, secondary_conf, secondary_analysis = await self.llm.correct_text_with_analysis_secondary(chunk)
+                    # Run both models IN PARALLEL for speed
+                    akura_task = self.llm.correct_text_with_analysis(chunk)
+                    secondary_task = self.llm.correct_text_with_analysis_secondary(chunk)
                     
-                    # Step 3: Merge results (union)
+                    (akura_corrected, akura_conf, akura_analysis), \
+                    (secondary_corrected, secondary_conf, secondary_analysis) = await asyncio.gather(
+                        akura_task, secondary_task
+                    )
+                    
+                    # Merge results (union)
                     chunk_analyses, chunk_corrected = self._merge_model_results(
                         original_chunk=chunk,
                         akura_result=(akura_corrected, akura_conf, akura_analysis),
@@ -107,7 +110,8 @@ class AnalysisService:
                         include_correct=True
                     )
                 else:
-                    # Single-model path (existing behavior)
+                    # Single-model path
+                    akura_corrected, akura_conf, akura_analysis = await self.llm.correct_text_with_analysis(chunk)
                     chunk_analyses = self._build_word_analyses_from_model(
                         original_text=chunk,
                         corrected_text=akura_corrected,

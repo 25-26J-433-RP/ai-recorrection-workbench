@@ -116,7 +116,7 @@ $deployArgs = @(
     "--cpu", "1",
     "--min-instances", "0",
     "--max-instances", "10",
-    "--timeout", "300",
+    "--timeout", "900",
     "--set-env-vars", $envVars
 )
 
