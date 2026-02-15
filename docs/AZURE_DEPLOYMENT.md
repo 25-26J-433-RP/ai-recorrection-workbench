@@ -283,10 +283,35 @@ ssh azureuser@20.212.24.114 "sudo systemctl restart akura-ai"
 
 ### Update Code on VM
 
+**Option 1 – Use the update script (recommended)**
+
+From project root (`ai-recorrection-workbench`):
+
+```powershell
+# Uses default VM IP 20.212.24.114 and user azureuser
+.\scripts\update-azure-vm.ps1
+
+# Or set custom IP/user:
+$env:AZURE_VM_IP = "20.212.24.114"
+$env:AZURE_USER = "azureuser"
+.\scripts\update-azure-vm.ps1
+```
+
+**Option 2 – Manual SCP + restart**
+
 ```powershell
 # From project root (c:\Github\sliit\ai-recorrection-workbench)
 scp -r app/ azureuser@20.212.24.114:/home/azureuser/akura-ai/
+scp requirements.txt azureuser@20.212.24.114:/home/azureuser/akura-ai/
 ssh azureuser@20.212.24.114 "sudo systemctl restart akura-ai"
+```
+
+If you changed `requirements.txt`, SSH in and reinstall deps then restart:
+
+```powershell
+ssh azureuser@20.212.24.114
+cd /home/azureuser/akura-ai && source venv/bin/activate && pip install -r requirements.txt
+sudo systemctl restart akura-ai
 ```
 
 ### Delete Everything (cleanup)

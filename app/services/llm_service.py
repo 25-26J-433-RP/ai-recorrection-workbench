@@ -41,7 +41,7 @@ Analyze the following Sinhala text and correct any errors. For each error found,
 - "Phonetic" — phonetic confusion (e.g., dental/retroflex mix-ups like න↔ණ, ල↔ළ, ද↔ඩ)
 - "Spelling" — spelling/visual errors (e.g., missing vowel signs, scrambled letters)
 - "Grammar" — grammar errors (e.g., spoken vs written form, missing suffixes)
-
+- නිවැරදි කරන්න. අර්ථය වෙනස් නොකරන්න. අවශ්‍ය දේවල් පමණක්. ප්‍රතිඵලය ලෙස නිවැරදි කළ පරාග්‍රාෆ් එක පමණක් දෙන්න
 Respond ONLY with valid JSON in this exact format (no extra text, no markdown):
 {"correction": "<full corrected text>", "analysis": [{"word": "<original wrong word>", "type": "<error type>", "suggestion": "<corrected word>"}]}
 

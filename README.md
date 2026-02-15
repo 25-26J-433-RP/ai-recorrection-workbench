@@ -227,9 +227,9 @@ For **cheap, request-based** deployment (Azure Container Apps, Google Cloud Run)
    HF_API_TOKEN=your_token_here
    HF_MODEL_ID=hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit
    ```
-3. Deploy to Azure:
-   - **Guide**: [docs/AZURE_DEPLOYMENT.md](docs/AZURE_DEPLOYMENT.md)
-   - **PowerShell**: `$env:HF_API_TOKEN="your_token"; .\scripts\deploy-azure.ps1`
+3. Deploy to cloud:
+   - **Google Cloud Run**: [docs/GCP_CLOUD_RUN_DEPLOYMENT.md](docs/GCP_CLOUD_RUN_DEPLOYMENT.md) — `$env:HF_API_TOKEN="your_token"; .\scripts\deploy-gcp-cloudrun.ps1`
+   - **Azure Container Apps**: [docs/AZURE_DEPLOYMENT.md](docs/AZURE_DEPLOYMENT.md) — `$env:HF_API_TOKEN="your_token"; .\scripts\deploy-azure.ps1`
 4. You pay **per request** for Hugging Face inference, no idle cost
 
 **For local development** with Ollama:

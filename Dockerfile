@@ -42,18 +42,18 @@ ENV PATH=/home/akura/.local/bin:$PATH
 # Copy application code
 COPY --chown=akura:akura . .
 
-# Set environment variables
+# Set environment variables (PORT overridden by Cloud Run to 8080)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HOST=0.0.0.0 \
     PORT=8000
 
-# Expose port
-EXPOSE 8000
+# Expose default port (Cloud Run uses 8080 via env)
+EXPOSE 8000 8080
 
-# Health check
+# Health check uses PORT so it works on both local (8000) and Cloud Run (8080)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/v1/health || exit 1
+    CMD sh -c "curl -f http://localhost:${PORT:-8000}/api/v1/health || exit 1"
 
 # Run the application (Shell form to expand PORT variable)
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -52,6 +52,20 @@ Thumbs.db
 logs/
 
 # Model files (should be pulled separately)
-models/
+/models/
 *.bin
 *.gguf
+
+# Data files (not needed in container)
+data/
+frontend/
+scripts/
+migrations/
+*.ipynb
+*.json
+!postman_collection.json
+validation_*.txt
+
+# Environment files
+.env
+.env.production
