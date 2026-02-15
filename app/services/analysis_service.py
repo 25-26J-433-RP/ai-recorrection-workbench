@@ -79,10 +79,16 @@ class AnalysisService:
             settings = get_settings()
             use_dual = settings.enable_dual_model and self.llm.is_secondary_available
             
-            # Chunk the text by sentences
-            chunks = chunk_by_sentences(text)
-            if not chunks:
+            # Chunk the text — only split if text exceeds word limit
+            # Short texts (under max_words_per_chunk) are sent as a single chunk
+            # to minimize round-trips to the model server
+            text_words = text.split()
+            if len(text_words) <= 100:
                 chunks = [text]
+            else:
+                chunks = chunk_by_sentences(text)
+                if not chunks:
+                    chunks = [text]
             
             logger.info(f"Processing {len(chunks)} chunk(s), dual_model={use_dual}")
             

@@ -4,10 +4,13 @@ Akura AI - API Routes
 This module defines all API endpoints for the Akura AI backend.
 """
 
+import asyncio
+import json
 from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Depends
+from fastapi.responses import StreamingResponse
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -66,14 +69,13 @@ async def health_check() -> HealthResponse:
 
 @router.post(
     "/analyze",
-    response_model=AnalyzeResponse,
     summary="Analyze Sinhala Text",
     description="Analyze Sinhala text for dyslexic writing errors and provide corrections",
     tags=["Analysis"],
     responses={
         200: {
             "description": "Successful analysis",
-            "model": AnalyzeResponse
+            "content": {"application/json": {"schema": AnalyzeResponse.model_json_schema()}}
         },
         400: {
             "description": "Invalid input",
@@ -85,42 +87,74 @@ async def health_check() -> HealthResponse:
         }
     }
 )
-async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
+async def analyze_text(request: AnalyzeRequest):
     """
     Analyze Sinhala text for dyslexic writing errors.
+    
+    Uses streaming response with keepalive heartbeats to prevent
+    proxy/load-balancer idle timeouts during long model inference.
+    The response body is: optional whitespace + JSON result.
+    Clients can parse with json.loads(response.text.strip()).
     
     This endpoint:
     1. Takes Sinhala text input
     2. Uses AI + rule-based hybrid approach for correction
     3. Detects specific dyslexia patterns
     4. Returns detailed word-by-word analysis
-    
-    Args:
-        request: AnalyzeRequest with text to analyze
-        
-    Returns:
-        AnalyzeResponse with analysis results
     """
-    try:
-        logger.info(f"Analyzing text: {request.text[:50]}...")
+    async def stream_with_keepalive():
+        """Generator that sends keepalive spaces while analysis runs."""
+        # Start analysis in a background task
+        result_holder = {"done": False, "response": None, "error": None}
         
-        response = await analysis_service.analyze(
-            text=request.text,
-            include_correct_words=request.include_correct_words
-        )
+        async def run_analysis():
+            try:
+                response = await analysis_service.analyze(
+                    text=request.text,
+                    include_correct_words=request.include_correct_words
+                )
+                result_holder["response"] = response
+            except Exception as e:
+                result_holder["error"] = e
+            finally:
+                result_holder["done"] = True
         
-        logger.info(
-            f"Analysis complete. Found {len([w for w in response.data if w.type == 'error'])} errors"
-        )
+        # Launch analysis concurrently
+        task = asyncio.create_task(run_analysis())
         
-        return response
+        # Send keepalive space every 15 seconds while waiting
+        while not result_holder["done"]:
+            yield " "
+            await asyncio.sleep(15)
         
-    except Exception as e:
-        logger.error(f"Analysis failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Analysis failed: {str(e)}"
-        )
+        # Ensure task is finished
+        await task
+        
+        if result_holder["error"]:
+            logger.error(f"Analysis failed: {result_holder['error']}")
+            error_json = json.dumps({
+                "success": False,
+                "error": str(result_holder["error"]),
+                "data": [],
+                "corrected_text": request.text,
+                "original_text": request.text,
+                "processing_time_ms": 0,
+                "model_used": ""
+            }, ensure_ascii=False)
+            yield error_json
+        else:
+            response = result_holder["response"]
+            logger.info(
+                f"Analysis complete. Found {len([w for w in response.data if w.type == 'error'])} errors"
+            )
+            # Serialize the Pydantic model to JSON
+            yield response.model_dump_json(by_alias=True)
+    
+    logger.info(f"Analyzing text: {request.text[:50]}...")
+    return StreamingResponse(
+        stream_with_keepalive(),
+        media_type="application/json"
+    )
 
 
 @router.post(

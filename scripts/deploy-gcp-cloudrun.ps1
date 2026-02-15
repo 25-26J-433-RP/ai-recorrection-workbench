@@ -112,10 +112,12 @@ $deployArgs = @(
     "--platform", "managed",
     "--allow-unauthenticated",
     "--port", "8080",
-    "--memory", "1Gi",
-    "--cpu", "1",
-    "--min-instances", "0",
+    "--memory", "2Gi",
+    "--cpu", "2",
+    "--min-instances", "1",
     "--max-instances", "10",
+    "--concurrency", "1",
+    "--cpu-boost",
     "--timeout", "900",
     "--set-env-vars", $envVars
 )
