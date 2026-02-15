@@ -3,6 +3,11 @@ Akura AI - Analysis Service
 
 This module provides the main analysis service that combines
 AI-based and rule-based correction with intelligent pattern detection.
+
+Supports dual-model pipeline:
+1. Akura (fine-tuned) → primary correction
+2. Secondary model (via Ollama) → additional correction
+3. Merge results (union) → combined response
 """
 
 import asyncio
@@ -21,6 +26,7 @@ from app.models.schemas import (
 from app.services.llm_service import llm_service
 from app.services.pattern_detector import pattern_detector
 from app.services.rule_corrector import rule_corrector
+from app.utils.text_chunker import chunk_by_sentences
 
 
 class AnalysisService:
@@ -48,10 +54,17 @@ class AnalysisService:
         include_correct_words: bool = False
     ) -> AnalyzeResponse:
         """
-        Perform full analysis on Sinhala text using the fine-tuned LLM.
+        Perform full analysis on Sinhala text using dual-model pipeline.
         
-        Model Input: Full sentence (e.g., "මම ගෙරද යනව")
-        Model Output: JSON {"correction": "...", "analysis": [{"word": "...", "type": "...", "suggestion": "..."}]}
+        Pipeline:
+        1. Chunk text by sentences
+        2. For each chunk (sequential):
+           a. Send to Akura model (fine-tuned) → get corrections
+           b. Send to secondary model (general) → get corrections
+           c. Merge results (union of errors)
+        3. Reassemble all chunk results
+        
+        Falls back to single-model if dual-model is disabled or secondary unavailable.
         
         Args:
             text: The Sinhala text to analyze
@@ -63,27 +76,60 @@ class AnalysisService:
         start_time = time.time()
         
         try:
-            # Send full sentence to LLM and get JSON response
-            corrected_text, confidence, model_analysis = await self.llm.correct_text_with_analysis(text)
+            settings = get_settings()
+            use_dual = settings.enable_dual_model and self.llm.is_secondary_available
             
-            # Build full word analyses (forcing include_correct=True to get complete sentence structure)
-            full_analyses = self._build_word_analyses_from_model(
-                original_text=text,
-                corrected_text=corrected_text,
-                model_analysis=model_analysis,
-                include_correct=True
-            )
+            # Chunk the text by sentences
+            chunks = chunk_by_sentences(text)
+            if not chunks:
+                chunks = [text]
             
-            # Reconstruct corrected_text from tokens to ensure strict consistency
-            # This handles duplicate words correctly by preserving order
-            final_corrected_text = self._reconstruct_text_from_tokens(full_analyses)
+            logger.info(f"Processing {len(chunks)} chunk(s), dual_model={use_dual}")
+            
+            all_analyses: List[WordAnalysis] = []
+            corrected_chunks: List[str] = []
+            
+            for i, chunk in enumerate(chunks):
+                logger.debug(f"Processing chunk {i+1}/{len(chunks)}: '{chunk[:80]}...'")
+                
+                # Step 1: Akura model (primary)
+                akura_corrected, akura_conf, akura_analysis = await self.llm.correct_text_with_analysis(chunk)
+                
+                if use_dual:
+                    # Step 2: Secondary model
+                    secondary_corrected, secondary_conf, secondary_analysis = await self.llm.correct_text_with_analysis_secondary(chunk)
+                    
+                    # Step 3: Merge results (union)
+                    chunk_analyses, chunk_corrected = self._merge_model_results(
+                        original_chunk=chunk,
+                        akura_result=(akura_corrected, akura_conf, akura_analysis),
+                        secondary_result=(secondary_corrected, secondary_conf, secondary_analysis),
+                        include_correct=True
+                    )
+                else:
+                    # Single-model path (existing behavior)
+                    chunk_analyses = self._build_word_analyses_from_model(
+                        original_text=chunk,
+                        corrected_text=akura_corrected,
+                        model_analysis=akura_analysis,
+                        include_correct=True
+                    )
+                    chunk_corrected = self._reconstruct_text_from_tokens(chunk_analyses)
+                
+                all_analyses.extend(chunk_analyses)
+                corrected_chunks.append(chunk_corrected)
+            
+            # Reassemble chunks — preserve original sentence delimiters
+            final_corrected_text = " ".join(corrected_chunks)
             
             # Filter for response data if user didn't request correct words
-            response_data = full_analyses
+            response_data = all_analyses
             if not include_correct_words:
-                response_data = [w for w in full_analyses if w.type == WordType.ERROR]
+                response_data = [w for w in all_analyses if w.type == WordType.ERROR]
             
             processing_time = (time.time() - start_time) * 1000
+            
+            model_name = self.llm.get_dual_model_name() if use_dual else self.llm.get_model_name()
             
             return AnalyzeResponse(
                 success=True,
@@ -91,7 +137,7 @@ class AnalysisService:
                 corrected_text=final_corrected_text,
                 original_text=text,
                 processing_time_ms=round(processing_time, 2),
-                model_used=self.llm.get_model_name()
+                model_used=model_name
             )
             
         except Exception as e:
@@ -250,6 +296,129 @@ class AnalysisService:
             else:
                 words.append(analysis.word)
         return " ".join(words)
+    
+    def _merge_model_results(
+        self,
+        original_chunk: str,
+        akura_result: Tuple[str, float, List[Dict]],
+        secondary_result: Tuple[str, float, List[Dict]],
+        include_correct: bool = True
+    ) -> Tuple[List[WordAnalysis], str]:
+        """
+        Merge results from Akura and secondary models using union logic.
+        
+        For each word position in the original text:
+        - Both flag error → use Akura's suggestion (domain-specific), boost confidence, source="both"
+        - Only Akura flags error → use Akura entry, source="akura"
+        - Only secondary flags error → use secondary entry, source="secondary"
+        - Neither flags error → word is correct
+        
+        Args:
+            original_chunk: Original input chunk text
+            akura_result: (corrected_text, confidence, analysis_list) from Akura
+            secondary_result: (corrected_text, confidence, analysis_list) from secondary model
+            include_correct: Whether to include correct words
+            
+        Returns:
+            Tuple of (merged WordAnalysis list, merged corrected text)
+        """
+        akura_corrected, akura_conf, akura_analysis = akura_result
+        secondary_corrected, secondary_conf, secondary_analysis = secondary_result
+        
+        original_words = original_chunk.split()
+        
+        # Build lookup maps: word → error_item (for quick matching)
+        # Use list to handle duplicate words — match by first unmatched occurrence
+        akura_errors = {item.get("word", ""): item for item in akura_analysis}
+        secondary_errors = {item.get("word", ""): item for item in secondary_analysis}
+        
+        # Track which error items have been consumed (for duplicate word handling)
+        akura_used = set()
+        secondary_used = set()
+        
+        merged_analyses: List[WordAnalysis] = []
+        
+        for word in original_words:
+            # Find matching error in Akura analysis
+            akura_item = None
+            for idx, item in enumerate(akura_analysis):
+                if item.get("word") == word and idx not in akura_used:
+                    akura_item = item
+                    akura_used.add(idx)
+                    break
+            
+            # Find matching error in secondary analysis
+            secondary_item = None
+            for idx, item in enumerate(secondary_analysis):
+                if item.get("word") == word and idx not in secondary_used:
+                    secondary_item = item
+                    secondary_used.add(idx)
+                    break
+            
+            if akura_item and secondary_item:
+                # Both models flag this word — use Akura suggestion, boost confidence
+                confidence = max(
+                    akura_item.get("confidence", 0.9),
+                    secondary_item.get("confidence", 0.9),
+                    0.95  # Boosted because both agree there's an error
+                )
+                merged_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=akura_item.get("type", secondary_item.get("type", "Unknown")),
+                    suggestion=akura_item.get("suggestion", word),
+                    explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
+                    confidence=round(confidence, 2),
+                    source="ai"
+                ))
+                logger.debug(f"  BOTH: '{word}' → akura='{akura_item.get('suggestion')}', secondary='{secondary_item.get('suggestion')}'")
+                
+            elif akura_item:
+                # Only Akura flags this word
+                merged_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=akura_item.get("type", "Unknown"),
+                    suggestion=akura_item.get("suggestion", word),
+                    explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
+                    confidence=0.9,
+                    source="ai"
+                ))
+                logger.debug(f"  AKURA only: '{word}' → '{akura_item.get('suggestion')}'")
+                
+            elif secondary_item:
+                # Only secondary model flags this word
+                merged_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.ERROR,
+                    dyslexia_pattern=secondary_item.get("type", "Unknown"),
+                    suggestion=secondary_item.get("suggestion", word),
+                    explanation=f"Detected: {secondary_item.get('type', 'Unknown')}",
+                    confidence=0.85,  # Slightly lower — not confirmed by domain model
+                    source="ai"
+                ))
+                logger.debug(f"  SECONDARY only: '{word}' → '{secondary_item.get('suggestion')}'")
+                
+            elif include_correct:
+                merged_analyses.append(WordAnalysis(
+                    word=word,
+                    type=WordType.CORRECT,
+                    dyslexia_pattern=None,
+                    suggestion=None,
+                    explanation=None,
+                    confidence=1.0,
+                    source=None
+                ))
+        
+        # Reconstruct corrected text from merged analyses
+        merged_corrected = self._reconstruct_text_from_tokens(merged_analyses)
+        
+        akura_count = sum(1 for a in merged_analyses if a.source == "ai")
+        logger.info(
+            f"Merge result: total errors={akura_count}"
+        )
+        
+        return merged_analyses, merged_corrected
 
     def _build_corrected_text(
         self,

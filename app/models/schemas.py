@@ -82,7 +82,7 @@ class WordAnalysis(BaseModel):
     
     source: Optional[str] = Field(
         default=None,
-        description="Source of the correction (ai, rule-based, or hybrid)"
+        description="Source of the correction (ai or rule-based)"
     )
     
     class Config:
@@ -146,12 +146,12 @@ class HealthResponse(BaseModel):
     model_status: str = Field(
         ...,
         alias="modelStatus",
-        description="Status of the LLM connection"
+        description="Status of the Akura LLM connection"
     )
     ollama_connected: bool = Field(
         ...,
         alias="ollamaConnected",
-        description="Whether Ollama is connected and responding"
+        description="Whether the Akura model is connected and responding"
     )
     
     class Config:

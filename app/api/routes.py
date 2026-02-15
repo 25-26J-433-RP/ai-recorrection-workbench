@@ -44,16 +44,21 @@ settings = get_settings()
 )
 async def health_check() -> HealthResponse:
     """
-    Perform a health check on the API and Ollama connection.
+    Perform a health check on the API and Akura model connection.
     
     Returns:
         HealthResponse with status information
     """
     ollama_healthy, ollama_status = await llm_service.check_health()
     
+    # Also check secondary model internally (for logging only, not exposed)
+    secondary_healthy, secondary_status = await llm_service.check_secondary_health()
+    if not secondary_healthy:
+        logger.warning(f"Secondary model not available: {secondary_status}")
+    
     return HealthResponse(
         status="healthy" if ollama_healthy else "degraded",
-        version="1.0.0",
+        version="2.0.0",
         model_status=ollama_status,
         ollama_connected=ollama_healthy
     )

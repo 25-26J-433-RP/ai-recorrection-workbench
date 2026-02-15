@@ -5,6 +5,10 @@ Supports three backends:
 - HF Space: free GGUF model server on HuggingFace Spaces
 - Hugging Face Inference API: request-based (requires supported model)
 - Ollama: local development with fine-tuned model
+
+Dual-model pipeline:
+- Akura (fine-tuned): Primary correction via Ollama
+- Secondary model (general): Additional correction via Ollama
 """
 
 import asyncio
@@ -29,14 +33,34 @@ class LLMService:
     - Output: {"correction": "corrected text", "analysis": [...]}
     """
     
+    # Secondary model correction prompt — instructs the general model to return
+    # the same JSON format as the fine-tuned Akura model.
+    SECONDARY_CORRECTION_PROMPT = """You are an expert Sinhala language corrector specializing in detecting dyslexic writing patterns in children's essays.
+
+Analyze the following Sinhala text and correct any errors. For each error found, classify it as one of:
+- "Phonetic" — phonetic confusion (e.g., dental/retroflex mix-ups like න↔ණ, ල↔ළ, ද↔ඩ)
+- "Spelling" — spelling/visual errors (e.g., missing vowel signs, scrambled letters)
+- "Grammar" — grammar errors (e.g., spoken vs written form, missing suffixes)
+
+Respond ONLY with valid JSON in this exact format (no extra text, no markdown):
+{"correction": "<full corrected text>", "analysis": [{"word": "<original wrong word>", "type": "<error type>", "suggestion": "<corrected word>"}]}
+
+If there are no errors, return:
+{"correction": "<original text unchanged>", "analysis": []}
+
+Text to analyze:
+"""
+
     def __init__(self):
         """Initialize the LLM service."""
         self.settings = get_settings()
         self._ollama_llm = None
+        self._secondary_ollama_llm = None
         self._is_initialized = False
+        self._secondary_initialized = False
     
     def _get_ollama_llm(self):
-        """Lazy initialization of Ollama LLM (for local dev)."""
+        """Lazy initialization of Ollama LLM (Akura fine-tuned model)."""
         if self._ollama_llm is None:
             from langchain_community.llms import Ollama
             self._ollama_llm = Ollama(
@@ -45,8 +69,21 @@ class LLMService:
                 temperature=self.settings.model_temperature,
                 timeout=self.settings.ollama_timeout,
             )
-            logger.info(f"Initialized Ollama: {self.settings.ollama_model}")
+            logger.info(f"Initialized Ollama (Akura): {self.settings.ollama_model}")
         return self._ollama_llm
+    
+    def _get_secondary_ollama_llm(self):
+        """Lazy initialization of secondary model via Ollama."""
+        if self._secondary_ollama_llm is None:
+            from langchain_community.llms import Ollama
+            self._secondary_ollama_llm = Ollama(
+                base_url=self.settings.ollama_base_url,
+                model=self.settings.secondary_ollama_model,
+                temperature=self.settings.secondary_ollama_temperature,
+                timeout=self.settings.secondary_ollama_timeout,
+            )
+            logger.info(f"Initialized secondary model: {self.settings.secondary_ollama_model}")
+        return self._secondary_ollama_llm
     
     def _invoke_hf_space(self, text: str) -> str:
         """Call our HuggingFace Space model server (sync, runs in thread)."""
@@ -139,6 +176,17 @@ class LLMService:
                 _ = self._get_ollama_llm()
                 self._is_initialized = True
                 logger.info(f"LLM: Ollama ({self.settings.ollama_model})")
+            
+            # Initialize secondary model if dual-model is enabled
+            if self.settings.enable_dual_model:
+                try:
+                    _ = self._get_secondary_ollama_llm()
+                    self._secondary_initialized = True
+                    logger.info(f"Dual-model enabled: {self.settings.secondary_ollama_model}")
+                except Exception as ge:
+                    logger.warning(f"Secondary model init failed (dual-model degraded): {ge}")
+                    self._secondary_initialized = False
+            
             return True
         except Exception as e:
             logger.error(f"Failed to initialize LLM service: {e}")
@@ -166,6 +214,29 @@ class LLMService:
             return ok, "initialized" if ok else "not initialized"
         except Exception as e:
             logger.error(f"Health check failed: {e}")
+            return False, str(e)
+    
+    async def check_secondary_health(self) -> Tuple[bool, str]:
+        """
+        Check if the secondary Ollama model is healthy.
+        
+        Returns:
+            Tuple of (is_healthy, status_message)
+        """
+        try:
+            if not self.settings.enable_dual_model:
+                return False, "Dual-model disabled"
+            if self._secondary_initialized:
+                return True, f"Ollama ({self.settings.secondary_ollama_model}) connected"
+            # Try to initialize
+            try:
+                _ = self._get_secondary_ollama_llm()
+                self._secondary_initialized = True
+                return True, f"Ollama ({self.settings.secondary_ollama_model}) connected"
+            except Exception as e:
+                return False, f"Secondary model not available: {e}"
+        except Exception as e:
+            logger.error(f"Secondary model health check failed: {e}")
             return False, str(e)
     
     async def correct_word(self, word: str) -> Tuple[str, float, str]:
@@ -364,6 +435,44 @@ class LLMService:
         confidence = 0.75 if corrected != original_text else 1.0
         return corrected, confidence, []
     
+    async def correct_text_with_analysis_secondary(self, text: str) -> Tuple[str, float, List[Dict]]:
+        """
+        Correct Sinhala text using the secondary model via Ollama.
+        
+        Sends text with a structured prompt instructing the secondary model
+        to return the same JSON format as the fine-tuned Akura model.
+        
+        Args:
+            text: The Sinhala text to correct
+            
+        Returns:
+            Tuple of (corrected_text, confidence_score, analysis_list)
+        """
+        try:
+            # Build the prompt with the secondary model correction instruction
+            prompt = self.SECONDARY_CORRECTION_PROMPT + text
+            
+            secondary_llm = self._get_secondary_ollama_llm()
+            response = await asyncio.to_thread(secondary_llm.invoke, prompt)
+            
+            if not response:
+                logger.warning("Empty response from secondary model")
+                return text, 0.0, []
+            
+            logger.debug(f"Raw secondary response (first 500 chars): {response[:500] if len(response) > 500 else response}")
+            
+            corrected, confidence, analysis = self._parse_response(response.strip(), text)
+            
+            logger.info(f"Secondary analysis: {len(analysis)} errors found")
+            for i, err in enumerate(analysis):
+                logger.info(f"  Secondary Error {i+1}: word='{err.get('word', '')}', type='{err.get('type', '')}', suggestion='{err.get('suggestion', '')}'")
+            
+            return corrected, confidence, analysis
+            
+        except Exception as e:
+            logger.error(f"Error in secondary model correction: {e}")
+            return text, 0.0, []
+    
     def get_model_name(self) -> str:
         """Get the name of the currently configured model."""
         provider = self.settings.llm_provider
@@ -372,6 +481,15 @@ class LLMService:
         elif provider == "huggingface":
             return self.settings.hf_model_id
         return self.settings.ollama_model
+    
+    def get_dual_model_name(self) -> str:
+        """Get model name for external display. Always shows Akura only."""
+        return self.get_model_name()
+    
+    @property
+    def is_secondary_available(self) -> bool:
+        """Check if secondary model is available for dual-model processing."""
+        return self.settings.enable_dual_model and self._secondary_initialized
 
 
 # Create singleton instance

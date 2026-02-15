@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     ollama_model: str = "hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M"
     ollama_timeout: int = 300  # 5 minutes for large essays
     
+    # Dual Model Configuration (Akura primary + secondary model via Ollama)
+    enable_dual_model: bool = True  # Enable dual-model pipeline
+    secondary_ollama_model: str = "gemini-3-flash-preview:latest"  # Secondary model in Ollama
+    secondary_ollama_timeout: int = 300  # Timeout for secondary model
+    secondary_ollama_temperature: float = 0.3  # Temperature for secondary corrections
+    
     # Hugging Face Inference API (request-based)
     hf_api_token: str = ""  # Get from https://huggingface.co/settings/tokens
     hf_model_id: str = "hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit"

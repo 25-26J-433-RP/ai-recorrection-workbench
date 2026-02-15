@@ -21,13 +21,18 @@ services:
       - DEBUG=false
       - ENVIRONMENT=production
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=llama3.2:1b
-      - OLLAMA_TIMEOUT=120
+      - OLLAMA_MODEL=hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M
+      - OLLAMA_TIMEOUT=300
       - MODEL_TEMPERATURE=0.3
-      - MODEL_MAX_TOKENS=512
+      - MODEL_MAX_TOKENS=2048
       - AI_CONFIDENCE_THRESHOLD=0.7
       - LOG_LEVEL=INFO
       - ALLOWED_ORIGINS=*
+      - LLM_PROVIDER=ollama
+      - ENABLE_DUAL_MODEL=true
+      - SECONDARY_OLLAMA_MODEL=gemini-3-flash-preview:latest
+      - SECONDARY_OLLAMA_TIMEOUT=300
+      - SECONDARY_OLLAMA_TEMPERATURE=0.3
     depends_on:
       ollama:
         condition: service_healthy
@@ -67,6 +72,7 @@ services:
 
   # ============================================
   # Model Initialization (Run once)
+  # Requires: ollama login google (on host) before first run
   # ============================================
   model-init:
     image: ollama/ollama:latest
@@ -78,9 +84,11 @@ services:
       - akura-network
     entrypoint: >
       sh -c "
-        echo 'Pulling llama3.2:1b model...' &&
-        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"llama3.2:1b\"}' &&
-        echo 'Model pulled successfully!'
+        echo 'Pulling Akura fine-tuned model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M\"}' &&
+        echo 'Pulling secondary model...' &&
+        curl -X POST http://ollama:11434/api/pull -d '{\"name\": \"gemini-3-flash-preview:latest\"}' &&
+        echo 'Both models pulled successfully!'
       "
     restart: "no"
 
