@@ -46,7 +46,9 @@ $IMAGE = "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}"
 
 # Ensure Artifact Registry repo exists
 Write-Host "[1/4] Ensuring Artifact Registry repository exists..." -ForegroundColor Yellow
-gcloud artifacts repositories describe $REPO_NAME --location=$REGION --project=$PROJECT_ID 2>$null
+$prevEAP = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+$null = gcloud artifacts repositories describe $REPO_NAME --location=$REGION --project=$PROJECT_ID 2>&1
+$ErrorActionPreference = $prevEAP
 if ($LASTEXITCODE -ne 0) {
     gcloud artifacts repositories create $REPO_NAME --repository-format=docker --location=$REGION --project=$PROJECT_ID
 }
