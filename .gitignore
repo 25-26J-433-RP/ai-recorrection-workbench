@@ -96,3 +96,4 @@ data/README.md
 
 # Backend
 backend/data/
+.env.production

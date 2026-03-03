@@ -35,18 +35,22 @@ class LLMService:
     
     # Secondary model correction prompt — instructs the general model to return
     # the same JSON format as the fine-tuned Akura model.
-    SECONDARY_CORRECTION_PROMPT = """You are an expert Sinhala language corrector specializing in detecting dyslexic writing patterns in children's essays.
+    # The user has explicitly requested to strictly use this prompt with the secondary model
+    SECONDARY_CORRECTION = """මෙම වාක්‍යයේ අර්ථය වෙනස් නොවන පරිදි එහි ඇති අක්ෂර වින්‍යාස සහ ව්‍යාකරණ දෝෂ හඳුනාගෙන නිවැරදි කරන්න. එසේ නිවැරදි කළ දෝෂ, 'පෙර' (වැරදි පදය) සහ 'පසු' (නිවැරදි කළ පදය) ලෙස වෙන වෙනම ලැයිස්තුගත කර දක්වන්න.
+    
+IMPORTANT: You must return ONLY a JSON object. Translate your "පෙර" and "පසු" findings into the following JSON format. Do not include any other text or markdown strings.
+{
+  "correction": "The fully corrected Sinhala text here",
+  "analysis": [
+    {
+      "word": "wrong word (පෙර)",
+      "suggestion": "corrected word (පසු)",
+      "type": "error"
+    }
+  ]
+}
 
-Analyze the following Sinhala text and correct any errors.:
-
-- නිවැරදි කරන්න. අර්ථය වෙනස් නොකරන්න. අවශ්‍ය දේවල් පමණක්. ප්‍රතිඵලය ලෙස නිවැරදි කළ පරාග්‍රාෆ් එක පමණක් දෙන්න
-Respond ONLY with valid JSON in this exact format (no extra text, no markdown):
-{"correction": "<full corrected text>", "analysis": [{"word": "<original wrong word>", "type": "<error type>", "suggestion": "<corrected word>"}]}
-
-If there are no errors, return:
-{"correction": "<original text unchanged>", "analysis": []}
-
-Text to analyze:
+Text to correct:
 """
 
     def __init__(self):
@@ -448,7 +452,7 @@ Text to analyze:
         """
         try:
             # Build the prompt with the secondary model correction instruction
-            prompt = self.SECONDARY_CORRECTION_PROMPT + text
+            prompt = self.SECONDARY_CORRECTION + text
             
             secondary_llm = self._get_secondary_ollama_llm()
             response = await asyncio.to_thread(secondary_llm.invoke, prompt)

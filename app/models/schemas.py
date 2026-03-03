@@ -128,6 +128,7 @@ class AnalyzeResponse(BaseModel):
     
     class Config:
         populate_by_name = True
+        protected_namespaces = ()
 
 
 class ErrorResponse(BaseModel):
@@ -156,6 +157,7 @@ class HealthResponse(BaseModel):
     
     class Config:
         populate_by_name = True
+        protected_namespaces = ()
 
 
 class BatchAnalyzeRequest(BaseModel):
@@ -178,6 +180,7 @@ class BatchAnalyzeResponse(BaseModel):
     
     class Config:
         populate_by_name = True
+        protected_namespaces = ()
 
 
 # =============================================================================

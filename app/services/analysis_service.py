@@ -76,61 +76,32 @@ class AnalysisService:
         start_time = time.time()
         
         try:
-            settings = get_settings()
-            use_dual = settings.enable_dual_model and self.llm.is_secondary_available
-            
-            # Chunk the text — only split if text exceeds word limit
-            # Short texts (under max_words_per_chunk) are sent as a single chunk
-            # to minimize round-trips to the model server
-            text_words = text.split()
-            if len(text_words) <= 100:
-                chunks = [text]
-            else:
-                chunks = chunk_by_sentences(text)
-                if not chunks:
-                    chunks = [text]
-            
-            logger.info(f"Processing {len(chunks)} chunk(s), dual_model={use_dual}")
+            # Use ONLY the Secondary Model (Ollama) as requested by user
+            logger.info("Processing text globally using ONLY the secondary model")
             
             all_analyses: List[WordAnalysis] = []
-            corrected_chunks: List[str] = []
+            final_corrected_text = ""
             
-            for i, chunk in enumerate(chunks):
-                logger.debug(f"Processing chunk {i+1}/{len(chunks)}: '{chunk[:80]}...'")
-                
-                if use_dual:
-                    # Run both models IN PARALLEL for speed
-                    akura_task = self.llm.correct_text_with_analysis(chunk)
-                    secondary_task = self.llm.correct_text_with_analysis_secondary(chunk)
-                    
-                    (akura_corrected, akura_conf, akura_analysis), \
-                    (secondary_corrected, secondary_conf, secondary_analysis) = await asyncio.gather(
-                        akura_task, secondary_task
-                    )
-                    
-                    # Merge results (union)
-                    chunk_analyses, chunk_corrected = self._merge_model_results(
-                        original_chunk=chunk,
-                        akura_result=(akura_corrected, akura_conf, akura_analysis),
-                        secondary_result=(secondary_corrected, secondary_conf, secondary_analysis),
-                        include_correct=True
-                    )
-                else:
-                    # Single-model path
-                    akura_corrected, akura_conf, akura_analysis = await self.llm.correct_text_with_analysis(chunk)
-                    chunk_analyses = self._build_word_analyses_from_model(
-                        original_text=chunk,
-                        corrected_text=akura_corrected,
-                        model_analysis=akura_analysis,
-                        include_correct=True
-                    )
-                    chunk_corrected = self._reconstruct_text_from_tokens(chunk_analyses)
-                
-                all_analyses.extend(chunk_analyses)
-                corrected_chunks.append(chunk_corrected)
+            # 1. Global Secondary Pass (100% text execution)
+            secondary_res = await self.llm.correct_text_with_analysis_secondary(text)
+            secondary_corrected, secondary_conf, secondary_analysis = secondary_res
             
-            # Reassemble chunks — preserve original sentence delimiters
-            final_corrected_text = " ".join(corrected_chunks)
+            # Align words to build the base token array
+            chunk_analyses = self._build_word_analyses_from_model(
+                original_text=text,
+                corrected_text=secondary_corrected,
+                model_analysis=secondary_analysis,
+                include_correct=True
+            )
+            
+            # Map standard output to match the expected fine-tuned structure
+            for ans in chunk_analyses:
+                if ans.type == WordType.ERROR:
+                    ans.dyslexia_pattern = "error"
+                    ans.source = "ai"
+                
+            all_analyses.extend(chunk_analyses)
+            final_corrected_text = self._reconstruct_text_from_tokens(chunk_analyses)
             
             # Filter for response data if user didn't request correct words
             response_data = all_analyses
@@ -139,7 +110,8 @@ class AnalysisService:
             
             processing_time = (time.time() - start_time) * 1000
             
-            model_name = self.llm.get_dual_model_name() if use_dual else self.llm.get_model_name()
+            # Use the exact fine-tuned model name as requested by the user for frontend compatibility
+            model_name = "hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M"
             
             return AnalyzeResponse(
                 success=True,
@@ -368,12 +340,10 @@ class AnalysisService:
                     break
             
             if akura_item and secondary_item:
-                # Both models flag this word — use Secondary suggestion (higher priority), boost confidence
-                confidence = max(
-                    akura_item.get("confidence", 0.9),
-                    secondary_item.get("confidence", 0.9),
-                    0.95  # Boosted because both agree there's an error
-                )
+                # Both models flag this word — 80/20 Blended Confidence
+                s_conf = secondary_item.get("confidence", 0.9)
+                a_conf = akura_item.get("confidence", 0.9)
+                confidence = (0.8 * s_conf) + (0.2 * a_conf)
                 merged_analyses.append(WordAnalysis(
                     word=word,
                     type=WordType.ERROR,
@@ -381,35 +351,39 @@ class AnalysisService:
                     suggestion=secondary_item.get("suggestion", word),
                     explanation=f"Detected: {secondary_item.get('type', akura_item.get('type', 'Unknown'))}",
                     confidence=round(confidence, 2),
-                    source="ai"
+                    source="ai-ensemble"
                 ))
-                logger.debug(f"  BOTH: '{word}' → secondary='{secondary_item.get('suggestion')}' (preferred), akura='{akura_item.get('suggestion')}'")
+                logger.debug(f"  BOTH: '{word}' → blended conf={confidence}")
                 
             elif secondary_item:
-                # Only secondary model flags this word (high priority)
+                # Only secondary model flags this word (80% weight)
+                s_conf = secondary_item.get("confidence", 0.9)
+                confidence = 0.8 * s_conf
                 merged_analyses.append(WordAnalysis(
                     word=word,
                     type=WordType.ERROR,
                     dyslexia_pattern=secondary_item.get("type", "Unknown"),
                     suggestion=secondary_item.get("suggestion", word),
                     explanation=f"Detected: {secondary_item.get('type', 'Unknown')}",
-                    confidence=0.9,
-                    source="ai"
+                    confidence=round(confidence, 2),
+                    source="ai-secondary"
                 ))
-                logger.debug(f"  SECONDARY only: '{word}' → '{secondary_item.get('suggestion')}'")
+                logger.debug(f"  SECONDARY only: '{word}' → conf={confidence}")
                 
             elif akura_item:
-                # Only Akura flags this word (domain-specific backup)
+                # Only Akura flags this word (20% weight)
+                a_conf = akura_item.get("confidence", 0.9)
+                confidence = 0.2 * a_conf
                 merged_analyses.append(WordAnalysis(
                     word=word,
                     type=WordType.ERROR,
                     dyslexia_pattern=akura_item.get("type", "Unknown"),
                     suggestion=akura_item.get("suggestion", word),
                     explanation=f"Detected: {akura_item.get('type', 'Unknown')}",
-                    confidence=0.85,
-                    source="ai"
+                    confidence=round(confidence, 2),
+                    source="ai-primary"
                 ))
-                logger.debug(f"  AKURA only: '{word}' → '{akura_item.get('suggestion')}'")
+                logger.debug(f"  AKURA only: '{word}' → conf={confidence}")
                 
             elif include_correct:
                 merged_analyses.append(WordAnalysis(

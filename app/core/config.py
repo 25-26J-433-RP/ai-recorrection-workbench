@@ -14,6 +14,10 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
     
+    class Config:
+        protected_namespaces = ()
+
+    
     # Server Configuration
     host: str = "0.0.0.0"
     port: int = 8000
@@ -21,7 +25,7 @@ class Settings(BaseSettings):
     environment: str = "production"
     
     # Ollama Configuration (local development)
-    ollama_base_url: str = "http://localhost:11434"
+    ollama_base_url: str = "http://20.212.24.114:11434"
     ollama_model: str = "hf.co/hasinduOnline/akura_ai_sinhala_dyslexic_word_corrector_4bit:Q4_K_M"
     ollama_timeout: int = 300  # 5 minutes for large essays
     
